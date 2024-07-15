@@ -98,4 +98,62 @@
             When: I will send request to retrieve history of all clients chats
             Then: Chats from in-memory storage will be saved to persistent storage and marked as saved, then chats from database will be retrieved
         ```
-    3. Feature:  
+5. Project:
+- Adapters
+    - http
+        - Firebase
+    - grpc
+        - GeminiAdapter {AiModel}
+    - Repository
+        - Firebase
+            - SendMessage(chatId string, role Participant, message Message) error
+            - RetrieveConversation(chatId string) ([]Message, error)
+            - SaveChatHistory(chat Chat) error
+            - RetrieveAllChats() ([]Chat, error)
+        - In-memory chat storage
+            - SendMessage(chatId string, role Participant, message Message) error
+            - RetrieveConversation(chatId string) ([]Message, error)
+- Application 
+    - Interface definition - AiModel 
+    - firebase ChatHistoryRepository
+    - redis ChatRepository
+    - aiModel AiModel
+    - ChatService
+        - (a Application) SendMessage(chatId string, role Participant, message Message) error
+        - (a Application) RetrieveConversation(chatId string) ([]Message, error)
+    - ChatHistoryService
+        - (a Application) Retrieve() ([]Chat, error)
+        - (a Application) Save(chat Chat) error
+- Core
+    - Chat
+        - Chat_id
+        - Context
+        - MessageQueue
+        - Participant
+            - Customer
+            - Assistant
+        - Message
+            - Content
+            - Timestamp
+            - (m Message) Send(role Participant, onSendMessage(msg Message))
+        - MessageValidator
+    - Repository
+        - Chat
+            - SendMessage(chatId string, role Participant, message Message) error
+            - RetrieveConversation(chatId string) ([]Message, error)
+        - Chat History
+            - RetrieveAllChats() ([]Chat, error)
+            - SaveChatHistory(chat Chat) error
+- Ports
+    - grpc
+        - SendMessage(customerId string, content string)
+        - RetrieveConversation(customerId string) []Message (ServerStream)
+        - RetrieveChatsHistory() []Chat (ServerStream)
+    - http
+        - SendMessage(customerId string, content string)
+        - RetrieveConversation(customerId string) []Message
+        - RetrieveChatsHistory() []Chat
+    - ws
+        - SendMessage(customerId string, content string)
+        - RetrieveConversation(customerId string) []Message
+        - RetrieveChatsHistory() []Chat
