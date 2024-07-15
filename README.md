@@ -157,3 +157,4 @@
         - SendMessage(customerId string, content string)
         - RetrieveConversation(customerId string) []Message
         - RetrieveChatsHistory() []Chat
+
