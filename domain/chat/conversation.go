@@ -26,7 +26,6 @@ func (m *conversation) enqueue(message Message) error {
 	if m.size == maxConversationSize {
 		return ErrConversationMaxSizeExceeded
 	}
-	m.size++
 	if m.size == 0 {
 		m.first = &node{message, nil}
 		m.last = m.first
@@ -34,6 +33,7 @@ func (m *conversation) enqueue(message Message) error {
 		m.last.next = &node{message, nil}
 		m.last = m.last.next
 	}
+	m.size++
 	return nil
 }
 
