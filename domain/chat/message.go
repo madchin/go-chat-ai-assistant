@@ -17,15 +17,15 @@ var (
 
 type Message struct {
 	content   string
-	timestamp time.Time
+	timestamp int64
 }
 
 func NewMessage(content string) Message {
-	return Message{content, time.Now()}
+	return Message{content, time.Now().UnixMilli()}
 }
 
-func (m Message) isOutdated(t int64) bool {
-	return time.Since(m.timestamp).Milliseconds() >= t
+func (m Message) isOutdated(currTime, outdateTime int64) bool {
+	return currTime-m.timestamp >= outdateTime
 }
 
 func (m Message) validateContent() error {

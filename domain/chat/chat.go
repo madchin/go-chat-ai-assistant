@@ -3,6 +3,7 @@ package chat
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -42,7 +43,7 @@ func (c chat) RemoveMessage() (Message, error) {
 	if err != nil {
 		return Message{}, errorChat(c, err)
 	}
-	if !lastMessage.isOutdated(messageMaxTime) {
+	if !lastMessage.isOutdated(time.Now().UnixMilli(), messageMaxTime) {
 		return Message{}, errorChat(c, ErrMessageUpToDate)
 	}
 	msg, err := c.conversation.dequeue()
