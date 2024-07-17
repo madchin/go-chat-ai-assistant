@@ -20,6 +20,14 @@ type Chat struct {
 	conversation *conversation
 }
 
+type ErrChat struct {
+	id string
+}
+
+func (ec ErrChat) Error() string {
+	return fmt.Sprintf("error on chat with id %s", ec.id)
+}
+
 func NewChat(context string) Chat {
 	return Chat{uuid.NewString(), context, &conversation{}}
 }
@@ -30,37 +38,33 @@ func (c Chat) Size() int {
 
 func (c Chat) SendMessage(msg Message) error {
 	if err := msg.validateContent(); err != nil {
-		return errorChat(c, err)
+		return errors.Join(ErrChat{c.id}, err)
 	}
 	if err := c.conversation.enqueue(msg); err != nil {
-		return errorChat(c, err)
+		return errors.Join(ErrChat{c.id}, err)
 	}
 	return nil
 }
 
-func (c Chat) RemoveMessage() (Message, error) {
+func (c Chat) RemoveMessage(olderThan int64) (Message, error) {
 	lastMessage, err := c.conversation.peek()
 	if err != nil {
-		return Message{}, errorChat(c, err)
+		return Message{}, errors.Join(ErrChat{c.id}, err)
 	}
-	if !lastMessage.isOutdated(time.Now().UnixMilli(), messageMaxTime) {
-		return Message{}, errorChat(c, ErrMessageUpToDate)
+	if !lastMessage.isOutdated(time.Now().UnixMilli(), olderThan) {
+		return Message{}, errors.Join(ErrChat{c.id}, ErrMessageUpToDate)
 	}
 	msg, err := c.conversation.dequeue()
 	if err != nil {
-		return Message{}, errorChat(c, err)
+		return Message{}, errors.Join(ErrChat{c.id}, err)
 	}
-	return msg, errorChat(c, err)
+	return msg, nil
 }
 
 func (c Chat) Conversation() ([]Message, error) {
 	msgs, err := c.conversation.allMessages()
 	if err != nil {
-		return nil, errorChat(c, err)
+		return nil, errors.Join(ErrChat{c.id}, err)
 	}
 	return msgs, nil
-}
-
-func errorChat(chat Chat, err error) error {
-	return fmt.Errorf("chat with id %s: %w", chat.id, err)
 }
