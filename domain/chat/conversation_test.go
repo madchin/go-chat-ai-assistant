@@ -7,7 +7,7 @@ import (
 
 func TestEnqueueOneMessage(t *testing.T) {
 	cnvrst := &conversation{}
-	msg := Message{"first", 1}
+	msg := Message{Customer, "first", 1}
 	err := cnvrst.enqueue(msg)
 	if err != nil {
 		t.Fatalf("Expected to enqueue correctly, err occured: %v", err)
@@ -37,12 +37,12 @@ func TestEnqueueOneMessage(t *testing.T) {
 
 func TestEnqueueTwoMessages(t *testing.T) {
 	cnvrst := &conversation{}
-	firstMsg := Message{"first", 1}
+	firstMsg := Message{Customer, "first", 1}
 	err := cnvrst.enqueue(firstMsg)
 	if err != nil {
 		t.Fatalf("Expected to enqueue correctly, err occured: %v", err)
 	}
-	secondMsg := Message{"second", 2}
+	secondMsg := Message{Customer, "second", 2}
 	err = cnvrst.enqueue(secondMsg)
 	if err != nil {
 		t.Fatalf("Expected to enqueue correctly, err occured: %v", err)
@@ -69,17 +69,17 @@ func TestEnqueueTwoMessages(t *testing.T) {
 
 func TestEnqueueThreeMessages(t *testing.T) {
 	cnvrst := &conversation{}
-	firstMsg := Message{"first", 1}
+	firstMsg := Message{Customer, "first", 1}
 	err := cnvrst.enqueue(firstMsg)
 	if err != nil {
 		t.Fatalf("Expected to enqueue correctly, err occured: %v", err)
 	}
-	secondMsg := Message{"second", 2}
+	secondMsg := Message{Customer, "second", 2}
 	err = cnvrst.enqueue(secondMsg)
 	if err != nil {
 		t.Fatalf("Expected to enqueue correctly, err occured: %v", err)
 	}
-	thirdMsg := Message{"third", 3}
+	thirdMsg := Message{Customer, "third", 3}
 	err = cnvrst.enqueue(thirdMsg)
 	if err != nil {
 		t.Fatalf("Expected to enqueue correctly, err occured: %v", err)
@@ -121,7 +121,7 @@ var testCasesExceedMaxConversationSize = []struct {
 func TestEnqueueExceedMaxConversationSize(t *testing.T) {
 	for idx, tc := range testCasesExceedMaxConversationSize {
 		cnvrst := &conversation{}
-		msg := Message{"msg", 1}
+		msg := Message{Customer, "msg", 1}
 		var err error
 		for i := 1; i <= tc.size; i++ {
 			err = cnvrst.enqueue(msg)
@@ -142,7 +142,7 @@ func TestDequeueWhenConversationIsEmpty(t *testing.T) {
 
 func TestDequeueLastElementInConversation(t *testing.T) {
 	cnvrst := &conversation{}
-	enqueueMsg := NewMessage("example")
+	enqueueMsg := NewMessage(Customer, "example")
 	cnvrst.enqueue(enqueueMsg)
 	dequeueMsg, err := cnvrst.dequeue()
 	if err != nil {
@@ -164,8 +164,8 @@ func TestDequeueLastElementInConversation(t *testing.T) {
 
 func TestDequeueTwoElementsAfterEachOther(t *testing.T) {
 	cnvrst := &conversation{}
-	firstMsg := NewMessage("first")
-	secondMsg := NewMessage("second")
+	firstMsg := NewMessage(Customer, "first")
+	secondMsg := NewMessage(Customer, "second")
 	cnvrst.enqueue(firstMsg)
 	cnvrst.enqueue(secondMsg)
 	firstDequeued, _ := cnvrst.dequeue()
@@ -252,7 +252,7 @@ func seedMessages(count int) []Message {
 	msgs := make([]Message, count)
 	for i := 0; i < count; i++ {
 		content := fmt.Sprintf("%d", i)
-		msgs[i] = NewMessage(content)
+		msgs[i] = NewMessage(Customer, content)
 	}
 	return msgs
 }

@@ -2,69 +2,57 @@ package chat
 
 import (
 	"errors"
-	"fmt"
 	"time"
-
-	"github.com/google/uuid"
 )
 
-const messageMaxTime = 15_000
+const MaxMessageTime = 15_000
 
 var (
 	ErrMessageUpToDate = errors.New("message is up to date")
 )
 
 type Chat struct {
-	id           string
 	context      string
 	conversation *conversation
 }
 
-type ErrChat struct {
-	id string
+func NewChat(context string) *Chat {
+	return &Chat{context, &conversation{}}
 }
 
-func (ec ErrChat) Error() string {
-	return fmt.Sprintf("error on chat with id %s", ec.id)
-}
-
-func NewChat(context string) Chat {
-	return Chat{uuid.NewString(), context, &conversation{}}
-}
-
-func (c Chat) Size() int {
+func (c *Chat) Size() int {
 	return c.conversation.size
 }
 
-func (c Chat) SendMessage(msg Message) error {
+func (c *Chat) SendMessage(msg Message) error {
 	if err := msg.validateContent(); err != nil {
-		return errors.Join(ErrChat{c.id}, err)
+		return err
 	}
 	if err := c.conversation.enqueue(msg); err != nil {
-		return errors.Join(ErrChat{c.id}, err)
+		return err
 	}
 	return nil
 }
 
-func (c Chat) RemoveMessage(olderThan int64) (Message, error) {
+func (c *Chat) RemoveMessage(olderThan int64) (Message, error) {
 	lastMessage, err := c.conversation.peek()
 	if err != nil {
-		return Message{}, errors.Join(ErrChat{c.id}, err)
+		return Message{}, err
 	}
 	if !lastMessage.isOutdated(time.Now().UnixMilli(), olderThan) {
-		return Message{}, errors.Join(ErrChat{c.id}, ErrMessageUpToDate)
+		return Message{}, ErrMessageUpToDate
 	}
 	msg, err := c.conversation.dequeue()
 	if err != nil {
-		return Message{}, errors.Join(ErrChat{c.id}, err)
+		return Message{}, err
 	}
 	return msg, nil
 }
 
-func (c Chat) Conversation() ([]Message, error) {
+func (c *Chat) Conversation() ([]Message, error) {
 	msgs, err := c.conversation.allMessages()
 	if err != nil {
-		return nil, errors.Join(ErrChat{c.id}, err)
+		return nil, err
 	}
 	return msgs, nil
 }

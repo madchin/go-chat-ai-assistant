@@ -16,12 +16,13 @@ var (
 )
 
 type Message struct {
+	author    Participant
 	content   string
 	timestamp int64
 }
 
-func NewMessage(content string) Message {
-	return Message{content, time.Now().UnixMilli()}
+func NewMessage(author Participant, content string) Message {
+	return Message{author, content, time.Now().UnixMilli()}
 }
 
 func (m Message) isOutdated(currTime, outdateTime int64) bool {

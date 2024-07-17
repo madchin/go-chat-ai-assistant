@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-const maxConversationSize = 5
+const maxConversationSize = 5 * 2
 
 var (
 	ErrEmptyConversation           = errors.New("conversation is empty")

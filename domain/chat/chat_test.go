@@ -42,14 +42,10 @@ var testSendMessage = []struct {
 
 func TestSendMessage(t *testing.T) {
 	for idx, tc := range testSendMessage {
-		chatId := "random"
-		chat := Chat{chatId, "", &conversation{}}
-		err := chat.SendMessage(NewMessage(tc.content))
+		chat := Chat{"", &conversation{}}
+		err := chat.SendMessage(NewMessage(Customer, tc.content))
 		if !errors.Is(err, tc.expected) {
 			t.Fatalf("Test case: %d failed.\nExpected error is not wrapped. expected: %v\n actual: %v", idx+1, tc.expected, err)
-		}
-		if err != nil && !errors.Is(err, ErrChat{chatId}) {
-			t.Fatalf("Test case: %d failed.\nExpected error is not with chat context. expected: %v\n actual: %v", idx+1, ErrChat{chatId}, err)
 		}
 	}
 }
@@ -62,16 +58,15 @@ var testRemoveMessage = []struct {
 	expectedErr             error
 }{
 	{"remove when conversation is empty and first message is outdated", -1, 0, 0, ErrEmptyConversation},
-	{"remove when conversation is empty and first message is up to date", messageMaxTime, 0, 0, ErrEmptyConversation},
+	{"remove when conversation is empty and first message is up to date", MaxMessageTime, 0, 0, ErrEmptyConversation},
 	{"remove when conversation is full and first message is outdated", -1, maxConversationSize, maxConversationSize - 1, nil},
-	{"remove when conversation is full and first message is up to date", messageMaxTime, maxConversationSize, maxConversationSize, ErrMessageUpToDate},
-	{"remove when conversation have capacity and first message is up to date", messageMaxTime, 2, 2, ErrMessageUpToDate},
+	{"remove when conversation is full and first message is up to date", MaxMessageTime, maxConversationSize, maxConversationSize, ErrMessageUpToDate},
+	{"remove when conversation have capacity and first message is up to date", MaxMessageTime, 2, 2, ErrMessageUpToDate},
 }
 
 func TestRemoveMessage(t *testing.T) {
 	for _, tc := range testRemoveMessage {
-		chatId := "random"
-		chat := Chat{chatId, "", &conversation{}}
+		chat := Chat{"", &conversation{}}
 		seedConversation(chat.conversation, seedMessages(tc.conversationSize))
 		_, err := chat.RemoveMessage(tc.olderThan)
 		if chat.Size() != tc.expectedSizeAfterRemove {
@@ -79,9 +74,6 @@ func TestRemoveMessage(t *testing.T) {
 		}
 		if !errors.Is(err, tc.expectedErr) {
 			t.Fatalf("Test case: %s failed.\nExpected error is not wrapped. expected: %v\n actual: %v", tc.name, tc.expectedErr, err)
-		}
-		if err != nil && !errors.Is(err, ErrChat{chatId}) {
-			t.Fatalf("Test case: %s failed.\nExpected error is not with chat context. expected: %v\n actual: %v", tc.name, ErrChat{chatId}, err)
 		}
 	}
 }
@@ -104,9 +96,6 @@ func TestConversation(t *testing.T) {
 		msgs, err := chat.Conversation()
 		if !errors.Is(err, tc.expectedErr) {
 			t.Fatalf("Test case: %s failed.\nExpected error is not wrapped. expected: %v\n actual: %v", tc.name, tc.expectedErr, err)
-		}
-		if err != nil && !errors.Is(err, ErrChat{chat.id}) {
-			t.Fatalf("Test case: %s failed.\nExpected error is not with chat context. expected: %v\n actual: %v", tc.name, ErrChat{chat.id}, err)
 		}
 		for idx, msg := range msgs {
 			if msg != seededMsgs[idx] {
