@@ -1,8 +1,11 @@
 package chat
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
-func TestConversationEnqueueOneMessage(t *testing.T) {
+func TestEnqueueOneMessage(t *testing.T) {
 	cnvrst := &conversation{}
 	msg := Message{"first", 1}
 	err := cnvrst.enqueue(msg)
@@ -32,7 +35,7 @@ func TestConversationEnqueueOneMessage(t *testing.T) {
 	}
 }
 
-func TestConversationEnqueueTwoMessages(t *testing.T) {
+func TestEnqueueTwoMessages(t *testing.T) {
 	cnvrst := &conversation{}
 	firstMsg := Message{"first", 1}
 	err := cnvrst.enqueue(firstMsg)
@@ -64,7 +67,7 @@ func TestConversationEnqueueTwoMessages(t *testing.T) {
 	}
 }
 
-func TestConversationEnqueueThreeMessages(t *testing.T) {
+func TestEnqueueThreeMessages(t *testing.T) {
 	cnvrst := &conversation{}
 	firstMsg := Message{"first", 1}
 	err := cnvrst.enqueue(firstMsg)
@@ -115,7 +118,7 @@ var testCasesExceedMaxConversationSize = []struct {
 	{maxConversationSize + 1, ErrConversationMaxSizeExceeded},
 }
 
-func TestConversationEnqueueExceedMaxConversationSize(t *testing.T) {
+func TestEnqueueExceedMaxConversationSize(t *testing.T) {
 	for idx, tc := range testCasesExceedMaxConversationSize {
 		cnvrst := &conversation{}
 		msg := Message{"msg", 1}
@@ -127,4 +130,129 @@ func TestConversationEnqueueExceedMaxConversationSize(t *testing.T) {
 			t.Fatalf("At test case: %d\nExpected error to be %v, actual: %v", idx+1, err, tc.expected)
 		}
 	}
+}
+
+func TestDequeueWhenConversationIsEmpty(t *testing.T) {
+	cnvrst := &conversation{}
+	_, err := cnvrst.dequeue()
+	if err != ErrEmptyConversation {
+		t.Fatalf("Expected error: %v, actual error: %v", ErrEmptyConversation, err)
+	}
+}
+
+func TestDequeueLastElementInConversation(t *testing.T) {
+	cnvrst := &conversation{}
+	enqueueMsg := NewMessage("example")
+	cnvrst.enqueue(enqueueMsg)
+	dequeueMsg, err := cnvrst.dequeue()
+	if err != nil {
+		t.Fatalf("Unexpected error occured during dequeueing last message in conversation, err: %v", err)
+	}
+	if enqueueMsg != dequeueMsg {
+		t.Fatalf("Enqueued msg %v != dequeued msg %v", enqueueMsg, dequeueMsg)
+	}
+	if cnvrst.first != nil {
+		t.Fatalf("First node in conversation should be nil")
+	}
+	if cnvrst.last != nil {
+		t.Fatalf("Last node in conversation should be nil")
+	}
+	if cnvrst.size != 0 {
+		t.Fatalf("Conversation size should be decremented after dequeue, expected size: %d actual size: %d", 1, cnvrst.size)
+	}
+}
+
+func TestDequeueTwoElementsAfterEachOther(t *testing.T) {
+	cnvrst := &conversation{}
+	firstMsg := NewMessage("first")
+	secondMsg := NewMessage("second")
+	cnvrst.enqueue(firstMsg)
+	cnvrst.enqueue(secondMsg)
+	firstDequeued, _ := cnvrst.dequeue()
+	secondDequeued, err := cnvrst.dequeue()
+	if err != nil {
+		t.Fatalf("Unexpected error occured during dequeueing second message, err: %v", err)
+	}
+	if firstDequeued == secondDequeued {
+		t.Fatalf("first dequeued: %v == second dequeued: %v ", firstDequeued, secondDequeued)
+	}
+	if secondDequeued != secondMsg {
+		t.Fatalf("Second enqueued msg: %v != second dequeued msg: %v", secondMsg, secondDequeued)
+	}
+	if cnvrst.size != 0 {
+		t.Fatalf("Conversation size should equal to: %d, actual: %d", 0, cnvrst.size)
+	}
+	if cnvrst.first != nil {
+		t.Fatalf("First node in conversation should be nil")
+	}
+	if cnvrst.last != nil {
+		t.Fatalf("Last node in conversation should be nil")
+	}
+}
+
+var testCasesPeek = []struct {
+	msgs     []Message
+	expected error
+}{
+	{seedMessages(0), ErrEmptyConversation},
+	{seedMessages(1), nil},
+	{seedMessages(2), nil},
+}
+
+func TestPeek(t *testing.T) {
+	for idx, tc := range testCasesPeek {
+		cnvrst := &conversation{}
+		seedConversation(cnvrst, tc.msgs)
+		peeked, err := cnvrst.peek()
+		if err != tc.expected {
+			t.Fatalf("Test case %d failed. Expected err to equal: %v, actual: %v", idx+1, tc.expected, err)
+		}
+		if len(tc.msgs) > 0 && peeked != tc.msgs[0] {
+			t.Fatalf("Peeked msg is wrong. Expected msg: %v, actual msg: %v", tc.msgs[0], peeked)
+		}
+	}
+}
+
+var testCasesAllMessages = []struct {
+	conversationSize int
+	expected         error
+}{
+	{0, ErrEmptyConversation},
+	{1, nil},
+	{2, nil},
+	{3, nil},
+	{4, nil},
+	{5, nil},
+}
+
+func TestRetrievingAllMessages(t *testing.T) {
+	for idx, tc := range testCasesAllMessages {
+		cnvrst := &conversation{}
+		seededMsgs := seedMessages(tc.conversationSize)
+		seedConversation(cnvrst, seededMsgs)
+		msgs, err := cnvrst.allMessages()
+		if err != tc.expected {
+			t.Fatalf("Test case: %d failed. Expected error: %v actual: %v", idx+1, tc.expected, err)
+		}
+		for i := 0; i < len(msgs); i++ {
+			if msgs[i] != seededMsgs[i] {
+				t.Fatalf("Test case: %d failed. At message idx: %d Retrieved message != Seeded message idx. Expected: %v, Actual: %v", idx+1, i, seededMsgs[i], msgs[i])
+			}
+		}
+	}
+}
+
+func seedConversation(cnvrst *conversation, msgs []Message) {
+	for _, msg := range msgs {
+		cnvrst.enqueue(msg)
+	}
+}
+
+func seedMessages(count int) []Message {
+	msgs := make([]Message, count)
+	for i := 0; i < count; i++ {
+		content := fmt.Sprintf("%d", i)
+		msgs[i] = NewMessage(content)
+	}
+	return msgs
 }

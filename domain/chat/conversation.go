@@ -65,8 +65,8 @@ func (m *conversation) allMessages() ([]Message, error) {
 	actualMsg := m.first
 	msgs = append(msgs, actualMsg.message)
 	for actualMsg.next != nil {
-		msgs = append(msgs, actualMsg.message)
 		actualMsg = actualMsg.next
+		msgs = append(msgs, actualMsg.message)
 	}
 	return msgs, nil
 }

@@ -14,21 +14,21 @@ var (
 	ErrMessageUpToDate = errors.New("message is up to date")
 )
 
-type chat struct {
+type Chat struct {
 	id           string
 	context      string
 	conversation *conversation
 }
 
-func NewChat(context string) chat {
-	return chat{uuid.NewString(), context, &conversation{}}
+func NewChat(context string) Chat {
+	return Chat{uuid.NewString(), context, &conversation{}}
 }
 
-func (c chat) Size() int {
+func (c Chat) Size() int {
 	return c.conversation.size
 }
 
-func (c chat) SendMessage(msg Message) error {
+func (c Chat) SendMessage(msg Message) error {
 	if err := msg.validateContent(); err != nil {
 		return errorChat(c, err)
 	}
@@ -38,7 +38,7 @@ func (c chat) SendMessage(msg Message) error {
 	return nil
 }
 
-func (c chat) RemoveMessage() (Message, error) {
+func (c Chat) RemoveMessage() (Message, error) {
 	lastMessage, err := c.conversation.peek()
 	if err != nil {
 		return Message{}, errorChat(c, err)
@@ -53,7 +53,7 @@ func (c chat) RemoveMessage() (Message, error) {
 	return msg, errorChat(c, err)
 }
 
-func (c chat) Conversation() ([]Message, error) {
+func (c Chat) Conversation() ([]Message, error) {
 	msgs, err := c.conversation.allMessages()
 	if err != nil {
 		return nil, errorChat(c, err)
@@ -61,6 +61,6 @@ func (c chat) Conversation() ([]Message, error) {
 	return msgs, nil
 }
 
-func errorChat(chat chat, err error) error {
+func errorChat(chat Chat, err error) error {
 	return fmt.Errorf("chat with id %s: %w", chat.id, err)
 }
