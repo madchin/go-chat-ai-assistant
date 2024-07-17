@@ -2,10 +2,7 @@ module github.com/madchin/go-chat-ai-assistant
 
 go 1.22.1
 
-require (
-	cloud.google.com/go/vertexai v0.12.0
-	github.com/google/uuid v1.6.0
-)
+require cloud.google.com/go/vertexai v0.12.0
 
 require (
 	cloud.google.com/go v0.115.0 // indirect
