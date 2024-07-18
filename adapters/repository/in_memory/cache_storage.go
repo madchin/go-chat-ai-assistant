@@ -54,16 +54,9 @@ func (s *Storage) RemoveOutdatedMessages() chat.UserMessages {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	usersMessages := make(chat.UserMessages, len(s.chats))
-	for cId, c := range s.chats {
-		msgs := make([]chat.Message, 0, c.Size())
-		for {
-			msg, err := c.RemoveMessage(chat.MaxMessageTime)
-			msgs = append(msgs, msg)
-			if err == chat.ErrEmptyConversation || err == chat.ErrMessageUpToDate || err != nil {
-				usersMessages[cId] = msgs
-				break
-			}
-		}
+	for chatId, c := range s.chats {
+		removedMsgs := s.removeOutdatedChatMessages(c)
+		usersMessages[chatId] = removedMsgs
 	}
 	return usersMessages
 }
@@ -84,4 +77,16 @@ func (s *Storage) RetrieveAllConversations() (chat.UserMessages, error) {
 func (s *Storage) chatExists(id string) bool {
 	_, ok := s.chats[id]
 	return ok
+}
+
+func (s *Storage) removeOutdatedChatMessages(c *chat.Chat) []chat.Message {
+	msgs := make([]chat.Message, 0, c.Size())
+	for {
+		msg, err := c.RemoveMessage(chat.MaxMessageTime)
+		msgs = append(msgs, msg)
+		if err == chat.ErrEmptyConversation || err == chat.ErrMessageUpToDate || err != nil {
+			break
+		}
+	}
+	return msgs
 }
