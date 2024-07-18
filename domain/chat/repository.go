@@ -5,11 +5,11 @@ type UserMessages map[string][]Message
 
 type Repository interface {
 	SendMessage(chatId string, msg Message) error
-	RemoveMessage(chatId string, onRemoveMessage OnRemoveMessage) (Message, error)
+	RemoveOutdatedMessages() UserMessages
 	RetrieveAllConversations() (UserMessages, error)
 }
 
 type HistoryRepository interface {
-	SaveHistory(id string) error
+	SaveHistory(UserMessages) error
 	RetrieveAllChatsHistory() (UserMessages, error)
 }

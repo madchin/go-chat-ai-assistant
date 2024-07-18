@@ -13,7 +13,7 @@ var (
 )
 
 const (
-	initialChatsCapacity = 50
+	chatsCapacity = 50
 )
 
 type UserChats map[string]*chat.Chat
@@ -21,11 +21,11 @@ type UserChats map[string]*chat.Chat
 type Storage struct {
 	chats UserChats
 	mu    sync.Mutex
-	chat.Repository
+	r     chat.Repository
 }
 
-func NewStorage() *Storage {
-	return &Storage{chats: make(UserChats, initialChatsCapacity)}
+func New() *Storage {
+	return &Storage{chats: make(UserChats, chatsCapacity)}
 }
 
 func (s *Storage) AddNewChat(id, context string) error {
@@ -50,18 +50,22 @@ func (s *Storage) SendMessage(chatId string, msg chat.Message) error {
 	return nil
 }
 
-func (s *Storage) RemoveMessage(chatId string, onRemoveMessage chat.OnRemoveMessage) (chat.Message, error) {
+func (s *Storage) RemoveOutdatedMessages() chat.UserMessages {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !s.chatExists(chatId) {
-		return chat.Message{}, ErrChatNotExists
+	usersMessages := make(chat.UserMessages, len(s.chats))
+	for cId, c := range s.chats {
+		msgs := make([]chat.Message, 0, c.Size())
+		for {
+			msg, err := c.RemoveMessage(chat.MaxMessageTime)
+			msgs = append(msgs, msg)
+			if err == chat.ErrEmptyConversation || err == chat.ErrMessageUpToDate || err != nil {
+				usersMessages[cId] = msgs
+				break
+			}
+		}
 	}
-	msg, err := s.chats[chatId].RemoveMessage(chat.MaxMessageTime)
-	if err != nil {
-		return chat.Message{}, err
-	}
-	onRemoveMessage(msg)
-	return msg, nil
+	return usersMessages
 }
 
 func (s *Storage) RetrieveAllConversations() (chat.UserMessages, error) {
