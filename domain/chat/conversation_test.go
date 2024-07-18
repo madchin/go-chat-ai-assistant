@@ -114,8 +114,8 @@ var testCasesExceedMaxConversationSize = []struct {
 	size     int
 	expected error
 }{
-	{maxConversationSize, nil},
-	{maxConversationSize + 1, ErrConversationMaxSizeExceeded},
+	{MaxConversationSize, nil},
+	{MaxConversationSize + 1, ErrConversationMaxSizeExceeded},
 }
 
 func TestEnqueueExceedMaxConversationSize(t *testing.T) {

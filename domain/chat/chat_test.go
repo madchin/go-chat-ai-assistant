@@ -13,8 +13,8 @@ var testSize = []struct {
 	{0, 0},
 	{1, 1},
 	{2, 2},
-	{maxConversationSize, maxConversationSize},
-	{maxConversationSize + 1, maxConversationSize},
+	{MaxConversationSize, MaxConversationSize},
+	{MaxConversationSize + 1, MaxConversationSize},
 }
 
 func TestSize(t *testing.T) {
@@ -59,8 +59,8 @@ var testRemoveMessage = []struct {
 }{
 	{"remove when conversation is empty and first message is outdated", -1, 0, 0, ErrEmptyConversation},
 	{"remove when conversation is empty and first message is up to date", MaxMessageTime, 0, 0, ErrEmptyConversation},
-	{"remove when conversation is full and first message is outdated", -1, maxConversationSize, maxConversationSize - 1, nil},
-	{"remove when conversation is full and first message is up to date", MaxMessageTime, maxConversationSize, maxConversationSize, ErrMessageUpToDate},
+	{"remove when conversation is full and first message is outdated", -1, MaxConversationSize, MaxConversationSize - 1, nil},
+	{"remove when conversation is full and first message is up to date", MaxMessageTime, MaxConversationSize, MaxConversationSize, ErrMessageUpToDate},
 	{"remove when conversation have capacity and first message is up to date", MaxMessageTime, 2, 2, ErrMessageUpToDate},
 }
 
@@ -84,7 +84,7 @@ var testConversation = []struct {
 	expectedErr error
 }{
 	{"Retrieve messages when conversation is empty", 0, ErrEmptyConversation},
-	{"Retrieve messages when conversation is full", maxConversationSize, nil},
+	{"Retrieve messages when conversation is full", MaxConversationSize, nil},
 	{"Retrieve messages when conversation have 2 messages", 2, nil},
 }
 

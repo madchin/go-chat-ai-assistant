@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-const maxConversationSize = 5 * 2
+const MaxConversationSize = 5 * 2
 
 var (
 	ErrEmptyConversation           = errors.New("conversation is empty")
@@ -23,7 +23,7 @@ type conversation struct {
 }
 
 func (m *conversation) enqueue(message Message) error {
-	if m.size == maxConversationSize {
+	if m.size == MaxConversationSize {
 		return ErrConversationMaxSizeExceeded
 	}
 	if m.size == 0 {
@@ -61,7 +61,7 @@ func (m *conversation) allMessages() ([]Message, error) {
 	if m.size == 0 {
 		return nil, ErrEmptyConversation
 	}
-	msgs := make([]Message, 0, maxConversationSize)
+	msgs := make([]Message, 0, MaxConversationSize)
 	actualMsg := m.first
 	msgs = append(msgs, actualMsg.message)
 	for actualMsg.next != nil {
