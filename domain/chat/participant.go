@@ -1,14 +1,14 @@
 package chat
 
-type participant struct {
+type Participant struct {
 	role string
 }
 
 var (
-	Customer  = participant{"customer"}
-	Assistant = participant{"assistant"}
+	Customer  = Participant{"customer"}
+	Assistant = Participant{"assistant"}
 )
 
-func (p participant) Role() string {
+func (p Participant) Role() string {
 	return p.role
 }

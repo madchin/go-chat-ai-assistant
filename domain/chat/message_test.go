@@ -7,8 +7,8 @@ import (
 )
 
 func TestMessageIsUpToDateAfterCreation(t *testing.T) {
-	msg := NewMessage("example")
-	isOutdated := msg.isOutdated(time.Now().UnixMilli(), messageMaxTime)
+	msg := NewMessage(Customer, "example")
+	isOutdated := msg.isOutdated(time.Now().UnixMilli(), MaxMessageTime)
 
 	if isOutdated {
 		t.Fatalf("message should be up to date, now its outdated. msg: %v", msg)
@@ -29,7 +29,7 @@ var testCasesOutdate = []struct {
 
 func TestMessageIsOutdated(t *testing.T) {
 	for idx, tc := range testCasesOutdate {
-		msg := Message{"", tc.messageTime}
+		msg := Message{Customer, "", tc.messageTime}
 		actual := msg.isOutdated(tc.currentTime, tc.outdateTime)
 		if actual != tc.expected {
 			t.Fatalf(`
@@ -58,7 +58,7 @@ var testCasesContentValidation = []struct {
 
 func TestMessageContentValidationError(t *testing.T) {
 	for idx, tc := range testCasesContentValidation {
-		msg := NewMessage(tc.content)
+		msg := NewMessage(Customer, tc.content)
 		err := msg.validateContent()
 		if err != tc.expected {
 			t.Fatalf("At test case %d expected err: %v, actual err: %v", idx+1, tc.expected, err)
