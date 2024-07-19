@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	ErrChatAlreadyExists = errors.New("chat already exists")
-	ErrChatNotExists     = errors.New("chat not exists")
+	errChatAlreadyExists = errors.New("chat already exists")
+	errChatNotExists     = errors.New("chat not exists")
 )
 
 const (
@@ -21,7 +21,6 @@ type UserChats map[string]*chat.Chat
 type Storage struct {
 	chats UserChats
 	mu    sync.Mutex
-	r     chat.Repository
 }
 
 func New() *Storage {
@@ -31,8 +30,8 @@ func New() *Storage {
 func (s *Storage) AddNewChat(id, context string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.chatExists(id) {
-		return ErrChatAlreadyExists
+	if s.chat(id) != nil {
+		return errChatAlreadyExists
 	}
 	s.chats[id] = chat.NewChat(context)
 	return nil
@@ -41,8 +40,8 @@ func (s *Storage) AddNewChat(id, context string) error {
 func (s *Storage) SendMessage(chatId string, msg chat.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !s.chatExists(chatId) {
-		return ErrChatNotExists
+	if s.chat(chatId) == nil {
+		return errChatNotExists
 	}
 	if err := s.chats[chatId].SendMessage(msg); err != nil {
 		return err
@@ -74,19 +73,22 @@ func (s *Storage) RetrieveAllConversations() (chat.UserMessages, error) {
 	return usersMessages, nil
 }
 
-func (s *Storage) chatExists(id string) bool {
-	_, ok := s.chats[id]
-	return ok
+func (s *Storage) chat(id string) *chat.Chat {
+	chat, ok := s.chats[id]
+	if !ok {
+		return nil
+	}
+	return chat
 }
 
 func (s *Storage) removeOutdatedChatMessages(c *chat.Chat) []chat.Message {
 	msgs := make([]chat.Message, 0, c.Size())
 	for {
 		msg, err := c.RemoveMessage(chat.MaxMessageTime)
-		msgs = append(msgs, msg)
 		if err == chat.ErrEmptyConversation || err == chat.ErrMessageUpToDate || err != nil {
 			break
 		}
+		msgs = append(msgs, msg)
 	}
 	return msgs
 }

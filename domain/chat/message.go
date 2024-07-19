@@ -2,6 +2,7 @@ package chat
 
 import (
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -23,6 +24,14 @@ type Message struct {
 
 func NewMessage(author Participant, content string) Message {
 	return Message{author, content, time.Now().UnixMilli()}
+}
+
+func NewValidMessageWithTimestamp(timestamp int64) Message {
+	return Message{Customer, strings.Repeat("a", minCharLength+1), timestamp}
+}
+
+func NewValidMessage() Message {
+	return NewMessage(Customer, strings.Repeat("a", minCharLength+1))
 }
 
 func (m Message) isOutdated(currTime, outdateTime int64) bool {
