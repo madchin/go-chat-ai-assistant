@@ -24,6 +24,10 @@ func (c *Chat) Size() int {
 	return c.conversation.size
 }
 
+func (c *Chat) Context() string {
+	return c.context
+}
+
 func (c *Chat) SendMessage(msg Message) error {
 	if err := msg.validateContent(); err != nil {
 		return err
