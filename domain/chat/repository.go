@@ -4,6 +4,7 @@ type OnRemoveMessage func(Message) error
 type UserMessages map[string][]Message
 
 type Repository interface {
+	CreateChat(id, context string) error
 	SendMessage(chatId string, msg Message) error
 	RemoveOutdatedMessages() UserMessages
 	RetrieveAllConversations() (UserMessages, error)

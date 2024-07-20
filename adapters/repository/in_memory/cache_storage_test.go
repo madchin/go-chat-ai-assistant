@@ -22,7 +22,7 @@ func TestAddingExistingChat(t *testing.T) {
 	chatId := "chatId"
 	chatContext := "chatContext"
 	storage := newStorageWithChat(chatId, chatContext, t)
-	err := storage.AddNewChat(chatId, chatContext)
+	err := storage.CreateChat(chatId, chatContext)
 	if err != errChatAlreadyExists {
 		t.Fatalf("error should be returned when creating chat for same user. \n Expected: %v \n Actual: %v", errChatAlreadyExists, err)
 	}
@@ -128,7 +128,7 @@ func TestRetrievingAllConversations(t *testing.T) {
 		storage := New()
 		for i := 0; i < tc.chatCount; i++ {
 			chatId := fmt.Sprintf("chat %d", i)
-			storage.AddNewChat(chatId, "")
+			storage.CreateChat(chatId, "")
 			seedChatWithMessages(storage, chatId, tc.msgs)
 		}
 		expectedMsgRetrieveCount := tc.chatCount * len(tc.msgs)
@@ -141,7 +141,7 @@ func TestRetrievingAllConversations(t *testing.T) {
 
 func newStorageWithChat(chatId, context string, t *testing.T) *Storage {
 	storage := New()
-	err := storage.AddNewChat(chatId, context)
+	err := storage.CreateChat(chatId, context)
 	if err != nil {
 		t.Fatalf("unexpected error occured during adding new chat, %v", err)
 	}

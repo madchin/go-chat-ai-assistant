@@ -27,7 +27,7 @@ func New() *Storage {
 	return &Storage{chats: make(UserChats, chatsCapacity)}
 }
 
-func (s *Storage) AddNewChat(id, context string) error {
+func (s *Storage) CreateChat(id, context string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.chat(id) != nil {
