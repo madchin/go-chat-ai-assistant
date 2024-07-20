@@ -2,13 +2,12 @@ package http_server
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"regexp"
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
+	service "github.com/madchin/go-chat-ai-assistant/services"
 )
 
 const (
@@ -16,7 +15,7 @@ const (
 )
 
 type HttpServer struct {
-	ms     MessageService
+	app    *service.Application
 	router *httprouter.Router
 }
 
@@ -25,8 +24,8 @@ type MessageService interface {
 	SendMessage(chatId string, msg chat.Message) (chat.Message, error)
 }
 
-func NewHttpServer(messageService MessageService) *HttpServer {
-	server := &HttpServer{messageService, httprouter.New()}
+func NewHttpServer(app *service.Application) *HttpServer {
+	server := &HttpServer{app, httprouter.New()}
 	server.router.POST(chatEndpoint, server.chatHandler)
 	server.router.PanicHandler = crashHandler
 	http.ListenAndServe(":8080", registerMiddlewares(server.router))
@@ -40,17 +39,18 @@ func (h HttpServer) chatHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		badRequest(w, "client", "JSON parse failed")
 		return
 	}
-	chatId := chatIdFromCookie(w)
-	setChatInIdCookie(w, chatId)
-
+	chatId, err := r.Cookie("chatId")
+	if err != nil || !isValidUUID(chatId.Value) {
+		setChatIdCookie(w, uuid.NewString())
+	}
 	//FIXME context
-	err = h.ms.CreateChat(chatId, "")
+	err = h.app.ChatService.CreateChat(chatId.Value, "")
 	if err != nil {
 		badRequest(w, "client", err.Error())
 		return
 	}
 
-	msg, err := h.ms.SendMessage(chatId, customerMessage.toDomainMessage())
+	msg, err := h.app.ChatService.SendMessage(chatId.Value, customerMessage.toDomainMessage())
 	if err != nil {
 		badRequest(w, "client", err.Error())
 		return
@@ -76,21 +76,22 @@ func internal(w http.ResponseWriter) {
 	_ = json.NewEncoder(w).Encode(&httpErr)
 }
 
-func setChatInIdCookie(w http.ResponseWriter, chatId string) {
-	cookie := fmt.Sprintf("chatId=%s; Max-Age=240; Secure; Path=/chat; HttpOnly; SameSite=Strict", chatId)
-	w.Header().Add("Set-Cookie", cookie)
+func setChatIdCookie(w http.ResponseWriter, chatId string) {
+	cookie := &http.Cookie{
+		Name:     "chatId",
+		Value:    chatId,
+		Path:     "/chat",
+		MaxAge:   240,
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
+	http.SetCookie(w, cookie)
 }
 
-func chatIdFromCookie(w http.ResponseWriter) string {
-	chatId := w.Header().Get("Cookie")
-	re := regexp.MustCompile(`chatId=(\w+)`)
-	match := re.FindStringSubmatch(chatId)
-	if len(match) > 1 {
-		chatId = match[1]
-	} else {
-		chatId = uuid.NewString()
-	}
-	return chatId
+func isValidUUID(uid string) bool {
+	_, err := uuid.Parse(uid)
+	return err == nil
 }
 
 func crashHandler(w http.ResponseWriter, _ *http.Request, _ any) {
