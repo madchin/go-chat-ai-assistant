@@ -34,6 +34,14 @@ func NewValidMessage() Message {
 	return NewMessage(Customer, strings.Repeat("a", minCharLength+1))
 }
 
+func (m Message) Content() string {
+	return m.content
+}
+
+func (m Message) Author() Participant {
+	return m.author
+}
+
 func (m Message) isOutdated(currTime, outdateTime int64) bool {
 	return currTime-m.timestamp >= outdateTime
 }
