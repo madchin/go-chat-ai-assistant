@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
+	inmemory_storage "github.com/madchin/go-chat-ai-assistant/adapters/repository/in_memory"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 	service "github.com/madchin/go-chat-ai-assistant/services"
 )
@@ -27,7 +28,7 @@ type MessageService interface {
 func NewHttpServer(app *service.Application) *HttpServer {
 	server := &HttpServer{app, httprouter.New()}
 	server.router.POST(chatEndpoint, server.chatHandler)
-	server.router.PanicHandler = crashHandler
+	//server.router.PanicHandler = crashHandler
 	http.ListenAndServe(":8080", registerMiddlewares(server.router))
 	return server
 }
@@ -39,18 +40,18 @@ func (h HttpServer) chatHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		badRequest(w, "client", "JSON parse failed")
 		return
 	}
-	chatId, err := r.Cookie("chatId")
-	if err != nil || !isValidUUID(chatId.Value) {
-		setChatIdCookie(w, uuid.NewString())
+	chatIdCookie, err := r.Cookie("chatId")
+	if err != nil || !isValidUUID(chatIdCookie.Value) {
+		chatIdCookie = setChatIdCookie(w, uuid.NewString())
 	}
 	//FIXME context
-	err = h.app.ChatService.CreateChat(chatId.Value, "")
-	if err != nil {
+	err = h.app.ChatService.CreateChat(chatIdCookie.Value, "")
+	if err != nil && err != inmemory_storage.ErrChatAlreadyExists {
 		badRequest(w, "client", err.Error())
 		return
 	}
 
-	msg, err := h.app.ChatService.SendMessage(chatId.Value, customerMessage.toDomainMessage())
+	msg, err := h.app.ChatService.SendMessage(chatIdCookie.Value, customerMessage.toDomainMessage())
 	if err != nil {
 		badRequest(w, "client", err.Error())
 		return
@@ -59,7 +60,7 @@ func (h HttpServer) chatHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	assistantMessage := OutcomingMessage{Author: msg.Author().Role(), Content: msg.Content()}
 	err = json.NewEncoder(w).Encode(&assistantMessage)
 	if err != nil {
-		internal(w)
+		badRequest(w, "internal", err.Error())
 	}
 
 }
@@ -76,7 +77,7 @@ func internal(w http.ResponseWriter) {
 	_ = json.NewEncoder(w).Encode(&httpErr)
 }
 
-func setChatIdCookie(w http.ResponseWriter, chatId string) {
+func setChatIdCookie(w http.ResponseWriter, chatId string) *http.Cookie {
 	cookie := &http.Cookie{
 		Name:     "chatId",
 		Value:    chatId,
@@ -87,6 +88,7 @@ func setChatIdCookie(w http.ResponseWriter, chatId string) {
 		SameSite: http.SameSiteStrictMode,
 	}
 	http.SetCookie(w, cookie)
+	return cookie
 }
 
 func isValidUUID(uid string) bool {
