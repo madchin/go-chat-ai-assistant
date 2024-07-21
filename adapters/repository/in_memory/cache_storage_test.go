@@ -23,8 +23,8 @@ func TestAddingExistingChat(t *testing.T) {
 	chatContext := "chatContext"
 	storage := newStorageWithChat(chatId, chatContext, t)
 	err := storage.CreateChat(chatId, chatContext)
-	if err != errChatAlreadyExists {
-		t.Fatalf("error should be returned when creating chat for same user. \n Expected: %v \n Actual: %v", errChatAlreadyExists, err)
+	if err != ErrChatAlreadyExists {
+		t.Fatalf("error should be returned when creating chat for same user. \n Expected: %v \n Actual: %v", ErrChatAlreadyExists, err)
 	}
 }
 
