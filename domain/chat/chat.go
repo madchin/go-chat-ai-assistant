@@ -29,8 +29,10 @@ func (c *Chat) Context() string {
 }
 
 func (c *Chat) SendMessage(msg Message) error {
-	if err := msg.validateContent(); err != nil {
-		return err
+	if msg.author == Customer {
+		if err := msg.validateContent(); err != nil {
+			return err
+		}
 	}
 	if err := c.conversation.enqueue(msg); err != nil {
 		return err
@@ -51,6 +53,10 @@ func (c *Chat) RemoveMessage(olderThan int64) (Message, error) {
 		return Message{}, err
 	}
 	return msg, nil
+}
+
+func (c *Chat) IsConversationEmpty() bool {
+	return c.conversation.size == 0
 }
 
 func (c *Chat) Conversation() ([]Message, error) {

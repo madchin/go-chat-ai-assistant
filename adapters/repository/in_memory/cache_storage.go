@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	errChatAlreadyExists = errors.New("chat already exists")
+	ErrChatAlreadyExists = errors.New("chat already exists")
 	errChatNotExists     = errors.New("chat not exists")
 )
 
@@ -16,22 +16,22 @@ const (
 	chatsCapacity = 50
 )
 
-type UserChats map[string]*chat.Chat
+type userChats map[string]*chat.Chat
 
 type Storage struct {
-	chats UserChats
+	chats userChats
 	mu    sync.Mutex
 }
 
 func New() *Storage {
-	return &Storage{chats: make(UserChats, chatsCapacity)}
+	return &Storage{chats: make(userChats, chatsCapacity)}
 }
 
 func (s *Storage) CreateChat(id, context string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.chat(id) != nil {
-		return errChatAlreadyExists
+		return ErrChatAlreadyExists
 	}
 	s.chats[id] = chat.NewChat(context)
 	return nil
@@ -71,6 +71,16 @@ func (s *Storage) RetrieveAllConversations() (chat.UserMessages, error) {
 		}
 	}
 	return usersMessages, nil
+}
+
+func (s *Storage) RemoveEmptyChats() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, ch := range s.chats {
+		if ch.IsConversationEmpty() {
+			delete(s.chats, id)
+		}
+	}
 }
 
 func (s *Storage) chat(id string) *chat.Chat {

@@ -1,10 +1,11 @@
 package main
 
 import (
+	"github.com/madchin/go-chat-ai-assistant/adapters/ai_model/gemini"
 	inmemory_storage "github.com/madchin/go-chat-ai-assistant/adapters/repository/in_memory"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 	http_server "github.com/madchin/go-chat-ai-assistant/ports/http"
-	"github.com/madchin/go-chat-ai-assistant/services"
+	service "github.com/madchin/go-chat-ai-assistant/services"
 )
 
 type historyRepositoryMock struct{}
@@ -17,20 +18,11 @@ func (h *historyRepositoryMock) RetrieveAllChatsHistory() (chat.UserMessages, er
 	return chat.UserMessages{}, nil
 }
 
-type messageServiceMock struct{}
-
-func (m messageServiceMock) CreateChat(id, context string) error {
-	return nil
-}
-
-func (m messageServiceMock) SendMessage(chatId string, msg chat.Message) (chat.Message, error) {
-	return chat.NewMessage(chat.Assistant, "Im your new assistant now!"), nil
-}
-
 func main() {
 	storage := inmemory_storage.New()
-	services.NewApplication(storage, &historyRepositoryMock{})
-	http_server.NewHttpServer(&messageServiceMock{})
+	model := gemini.NewModel("gemini-1.5-flash-001", "randomProjectId", "us-central1")
+	application := service.NewApplication(storage, &historyRepositoryMock{}, storage, model)
+	http_server.NewHttpServer(&application.ChatService)
 
 	// err := storage.CreateChat("1", "")
 	// if err != nil {
