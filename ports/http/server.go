@@ -8,7 +8,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	inmemory_storage "github.com/madchin/go-chat-ai-assistant/adapters/repository/in_memory"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
-	service "github.com/madchin/go-chat-ai-assistant/services"
 )
 
 const (
@@ -16,17 +15,17 @@ const (
 )
 
 type HttpServer struct {
-	app    *service.Application
-	router *httprouter.Router
+	chatService ChatService
+	router      *httprouter.Router
 }
 
-type MessageService interface {
-	CreateChat(id, context string) error
+type ChatService interface {
+	CreateChat(chatId, context string) error
 	SendMessage(chatId string, msg chat.Message) (chat.Message, error)
 }
 
-func NewHttpServer(app *service.Application) *HttpServer {
-	server := &HttpServer{app, httprouter.New()}
+func NewHttpServer(chatService ChatService) *HttpServer {
+	server := &HttpServer{chatService, httprouter.New()}
 	server.router.POST(chatEndpoint, server.chatHandler)
 	//server.router.PanicHandler = crashHandler
 	http.ListenAndServe(":8080", registerMiddlewares(server.router))
@@ -45,13 +44,17 @@ func (h HttpServer) chatHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		chatIdCookie = setChatIdCookie(w, uuid.NewString())
 	}
 	//FIXME context
-	err = h.app.ChatService.CreateChat(chatIdCookie.Value, "")
+	err = h.chatService.CreateChat(chatIdCookie.Value, "")
 	if err != nil && err != inmemory_storage.ErrChatAlreadyExists {
 		badRequest(w, "client", err.Error())
 		return
 	}
-
-	msg, err := h.app.ChatService.SendMessage(chatIdCookie.Value, customerMessage.toDomainMessage())
+	customerDomainMsg, err := customerMessage.toDomainMessage()
+	if err != nil {
+		badRequest(w, "client", err.Error())
+		return
+	}
+	msg, err := h.chatService.SendMessage(chatIdCookie.Value, customerDomainMsg)
 	if err != nil {
 		badRequest(w, "client", err.Error())
 		return
