@@ -7,7 +7,7 @@ const (
 )
 
 type clientConnectionsStorageService interface {
-	RemoveOutdatedConnections() error
+	RemoveOutdatedConnections()
 }
 
 type periodicClientConnectionsCleanUp struct {
