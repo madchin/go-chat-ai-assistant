@@ -115,15 +115,15 @@ var testCasesRetrievingAllConversations = []struct {
 	chatCount int
 }{
 	{"should not retrieve any conversation when there is no chats", nil, 0},
-	{"should not retrieve any conversation when there are chats but empty", nil, chatsCapacity / 2},
-	{"should retrieve all up to date messages from all chats", upToDateMessages(chat.MaxConversationSize), chatsCapacity / 2},
-	{"should retrieve all outdated messages from all chats", outdatedMessages(chat.MaxConversationSize), chatsCapacity / 2},
+	{"should not retrieve any conversation when there are chats but empty", nil, ChatsCapacity / 2},
+	{"should retrieve all up to date messages from all chats", upToDateMessages(chat.MaxConversationSize), ChatsCapacity / 2},
+	{"should retrieve all outdated messages from all chats", outdatedMessages(chat.MaxConversationSize), ChatsCapacity / 2},
 	{
 		"should retrieve all outdated and up to date messages from all chats",
 		[]chat.Message{
 			chat.NewValidMessageWithTimestamp(time.Now().UnixMilli()),
 			chat.NewValidMessageWithTimestamp(time.Now().UnixMilli() - chat.MaxMessageTime*2),
-		}, chatsCapacity / 2,
+		}, ChatsCapacity / 2,
 	},
 }
 
