@@ -13,7 +13,7 @@ var (
 )
 
 const (
-	chatsCapacity = 50
+	ChatsCapacity = 50
 )
 
 type userChats map[string]*chat.Chat
@@ -24,7 +24,7 @@ type Storage struct {
 }
 
 func New() *Storage {
-	return &Storage{chats: make(userChats, chatsCapacity)}
+	return &Storage{chats: make(userChats, ChatsCapacity)}
 }
 
 func (s *Storage) CreateChat(id, context string) error {

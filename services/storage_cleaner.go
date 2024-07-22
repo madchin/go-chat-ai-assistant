@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"time"
 
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
@@ -9,10 +8,6 @@ import (
 
 const (
 	cleanUpInterval = 20_000
-)
-
-var (
-	ErrUnableToCreateMultipleServices = errors.New("unable to create multiple services")
 )
 
 type StorageService interface {
@@ -30,24 +25,24 @@ type History interface {
 	SaveHistory(chat.UserMessages) error
 }
 
-func NewPeriodicCleanUpService(storage StorageService, history History) *PeriodicCleanUp {
+func newPeriodicCleanUpService(storage StorageService, history History) *PeriodicCleanUp {
 	service := &PeriodicCleanUp{storage, history, cleanUpInterval}
 	go func() {
 		for {
-			service.FlushOutdatedMessages(history)
-			service.RemoveEmptyChats()
-			time.Sleep(time.Millisecond * cleanUpInterval)
+			service.flushOutdatedMessages(history)
+			service.removeEmptyChats()
+			time.Sleep(time.Millisecond * time.Duration(service.interval))
 		}
 	}()
 	return service
 }
 
-func (p *PeriodicCleanUp) FlushOutdatedMessages(history History) {
+func (p *PeriodicCleanUp) flushOutdatedMessages(history History) {
 	if msgs := p.storage.RemoveOutdatedMessages(); len(msgs) > 0 {
 		history.SaveHistory(msgs)
 	}
 }
 
-func (p *PeriodicCleanUp) RemoveEmptyChats() {
+func (p *PeriodicCleanUp) removeEmptyChats() {
 	p.storage.RemoveEmptyChats()
 }
