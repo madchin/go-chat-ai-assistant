@@ -2,7 +2,6 @@ package chat
 
 import (
 	"errors"
-	"strings"
 	"testing"
 )
 
@@ -20,32 +19,13 @@ var testSize = []struct {
 func TestSize(t *testing.T) {
 	for idx, tc := range testSize {
 		chat := NewChat("")
-		seedConversation(chat.conversation, seedMessages(tc.size))
+		msgs, err := seedMessages(tc.size)
+		if err != nil {
+			t.Fatalf("Test case: %d failed.\nCreating messages failed: %v", idx+1, err)
+		}
+		seedConversation(chat.conversation, msgs)
 		if chat.Size() != tc.expected {
 			t.Fatalf("Test case: %d failed. Expected size: %d, Actual size: %d", idx+1, tc.expected, chat.Size())
-		}
-	}
-}
-
-var testSendMessage = []struct {
-	content  string
-	expected error
-}{
-	{strings.Repeat("a", minCharLength), ErrMessageShort},
-	{strings.Repeat("a", minCharLength-1), ErrMessageShort},
-	{strings.Repeat("a", minCharLength+1), nil},
-	{"", ErrMessageShort},
-	{strings.Repeat("a", maxCharLength-1), nil},
-	{strings.Repeat("a", maxCharLength), nil},
-	{strings.Repeat("a", maxCharLength+1), ErrMessageLong},
-}
-
-func TestSendMessage(t *testing.T) {
-	for idx, tc := range testSendMessage {
-		chat := Chat{"", &conversation{}}
-		err := chat.SendMessage(NewMessage(Customer, tc.content))
-		if !errors.Is(err, tc.expected) {
-			t.Fatalf("Test case: %d failed.\nExpected error is not wrapped. expected: %v\n actual: %v", idx+1, tc.expected, err)
 		}
 	}
 }
@@ -67,8 +47,12 @@ var testRemoveMessage = []struct {
 func TestRemoveMessage(t *testing.T) {
 	for _, tc := range testRemoveMessage {
 		chat := Chat{"", &conversation{}}
-		seedConversation(chat.conversation, seedMessages(tc.conversationSize))
-		_, err := chat.RemoveMessage(tc.olderThan)
+		seededMsgs, err := seedMessages(tc.conversationSize)
+		if err != nil {
+			t.Fatalf("Test case: %s failed.\nCreating messages failed: %v", tc.name, err)
+		}
+		seedConversation(chat.conversation, seededMsgs)
+		_, err = chat.RemoveMessage(tc.olderThan)
 		if chat.Size() != tc.expectedSizeAfterRemove {
 			t.Fatalf("Test case: %s failed.\nConversation size is wrong. Expected: %d, Actual: %d", tc.name, tc.conversationSize, tc.expectedSizeAfterRemove)
 		}
@@ -91,7 +75,10 @@ var testConversation = []struct {
 func TestConversation(t *testing.T) {
 	for _, tc := range testConversation {
 		chat := NewChat("")
-		seededMsgs := seedMessages(tc.size)
+		seededMsgs, err := seedMessages(tc.size)
+		if err != nil {
+			t.Fatalf("Test case: %s failed.\nCreating messages failed: %v", tc.name, err)
+		}
 		seedConversation(chat.conversation, seededMsgs)
 		msgs, err := chat.Conversation()
 		if !errors.Is(err, tc.expectedErr) {

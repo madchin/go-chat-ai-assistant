@@ -2,6 +2,7 @@ package chat
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -142,7 +143,10 @@ func TestDequeueWhenConversationIsEmpty(t *testing.T) {
 
 func TestDequeueLastElementInConversation(t *testing.T) {
 	cnvrst := &conversation{}
-	enqueueMsg := NewMessage(Customer, "example")
+	enqueueMsg, err := NewMessage(Customer, "example")
+	if err != nil {
+		t.Fatalf("Unexpected error occured during creating message, err: %v", err)
+	}
 	cnvrst.enqueue(enqueueMsg)
 	dequeueMsg, err := cnvrst.dequeue()
 	if err != nil {
@@ -164,8 +168,14 @@ func TestDequeueLastElementInConversation(t *testing.T) {
 
 func TestDequeueTwoElementsAfterEachOther(t *testing.T) {
 	cnvrst := &conversation{}
-	firstMsg := NewMessage(Customer, "first")
-	secondMsg := NewMessage(Customer, "second")
+	firstMsg, err := NewMessage(Customer, strings.Repeat("f", minCharLength+1))
+	if err != nil {
+		t.Fatalf("Unexpected error occured during creating first message, err: %v", err)
+	}
+	secondMsg, err := NewMessage(Customer, strings.Repeat("s", minCharLength+1))
+	if err != nil {
+		t.Fatalf("Unexpected error occured during creating second message, err: %v", err)
+	}
 	cnvrst.enqueue(firstMsg)
 	cnvrst.enqueue(secondMsg)
 	firstDequeued, _ := cnvrst.dequeue()
@@ -191,24 +201,28 @@ func TestDequeueTwoElementsAfterEachOther(t *testing.T) {
 }
 
 var testCasesPeek = []struct {
-	msgs     []Message
+	msgCount int
 	expected error
 }{
-	{seedMessages(0), ErrEmptyConversation},
-	{seedMessages(1), nil},
-	{seedMessages(2), nil},
+	{0, ErrEmptyConversation},
+	{1, nil},
+	{2, nil},
 }
 
 func TestPeek(t *testing.T) {
 	for idx, tc := range testCasesPeek {
 		cnvrst := &conversation{}
-		seedConversation(cnvrst, tc.msgs)
+		msgs, err := seedMessages(tc.msgCount)
+		if err != nil {
+			t.Fatalf("Test case: %d failed. Seeding messages err %v", idx+1, err)
+		}
+		seedConversation(cnvrst, msgs)
 		peeked, err := cnvrst.peek()
 		if err != tc.expected {
 			t.Fatalf("Test case %d failed. Expected err to equal: %v, actual: %v", idx+1, tc.expected, err)
 		}
-		if len(tc.msgs) > 0 && peeked != tc.msgs[0] {
-			t.Fatalf("Peeked msg is wrong. Expected msg: %v, actual msg: %v", tc.msgs[0], peeked)
+		if len(msgs) > 0 && peeked != msgs[0] {
+			t.Fatalf("Peeked msg is wrong. Expected msg: %v, actual msg: %v", msgs[0], peeked)
 		}
 	}
 }
@@ -228,7 +242,10 @@ var testCasesAllMessages = []struct {
 func TestRetrievingAllMessages(t *testing.T) {
 	for idx, tc := range testCasesAllMessages {
 		cnvrst := &conversation{}
-		seededMsgs := seedMessages(tc.conversationSize)
+		seededMsgs, err := seedMessages(tc.conversationSize)
+		if err != nil {
+			t.Fatalf("Test case: %d failed. Seeding messages err %v", idx+1, err)
+		}
 		seedConversation(cnvrst, seededMsgs)
 		msgs, err := cnvrst.allMessages()
 		if err != tc.expected {
@@ -248,11 +265,15 @@ func seedConversation(cnvrst *conversation, msgs []Message) {
 	}
 }
 
-func seedMessages(count int) []Message {
+func seedMessages(count int) ([]Message, error) {
 	msgs := make([]Message, count)
 	for i := 0; i < count; i++ {
-		content := fmt.Sprintf("%d", i)
-		msgs[i] = NewMessage(Customer, content)
+		content := strings.Repeat(fmt.Sprintf("%d", i), minCharLength+1)
+		msg, err := NewMessage(Customer, content)
+		if err != nil {
+			return nil, err
+		}
+		msgs[i] = msg
 	}
-	return msgs
+	return msgs, nil
 }
