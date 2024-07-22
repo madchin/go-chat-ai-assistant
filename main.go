@@ -21,7 +21,7 @@ func (h *historyRepositoryMock) RetrieveAllChatsHistory() (chat.UserMessages, er
 func main() {
 	storage := inmemory_storage.New()
 	model := gemini.NewModel("gemini-1.5-flash-001", "randomProjectId", "us-central1")
-	application := service.NewApplication(storage, &historyRepositoryMock{}, storage, model)
+	application := service.NewApplication(storage, &historyRepositoryMock{}, model.Connections, storage, model)
 	http_server.NewHttpServer(&application.ChatService)
 
 	// err := storage.CreateChat("1", "")

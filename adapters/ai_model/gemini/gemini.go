@@ -20,7 +20,7 @@ var (
 
 type Model struct {
 	model, projectId, location string
-	connections                connections
+	Connections                connections
 }
 
 func NewModel(model, projectId, location string) Model {
@@ -81,7 +81,7 @@ func (g Model) createClientConnection(ctx context.Context, chatId string) (*conn
 		return nil, errClientGeneration
 	}
 	connection := NewConnection(client, time.Now().Unix())
-	err = g.connections.bindChatToClientConnection(chatId, connection)
+	err = g.Connections.bindChatToClientConnection(chatId, connection)
 	if err != errChatConnectionAlreadyEstablished && err != nil {
 		return nil, err
 	}
