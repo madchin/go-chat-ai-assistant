@@ -7,32 +7,39 @@ import (
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
 	inmemory_storage "github.com/madchin/go-chat-ai-assistant/adapters/repository/in_memory"
-	"github.com/madchin/go-chat-ai-assistant/domain/chat"
-)
-
-const (
-	chatEndpoint = "/chat"
+	"github.com/madchin/go-chat-ai-assistant/ports"
 )
 
 type HttpServer struct {
-	chatService ChatService
+	chatService ports.ChatService
 	router      *httprouter.Router
 }
 
-type ChatService interface {
-	CreateChat(chatId, context string) error
-	SendMessage(chatId string, msg chat.Message) (chat.Message, error)
-}
-
-func NewHttpServer(chatService ChatService) *HttpServer {
+func RegisterHttpServer(chatService ports.ChatService) {
 	server := &HttpServer{chatService, httprouter.New()}
-	server.router.POST(chatEndpoint, server.chatHandler)
-	//server.router.PanicHandler = crashHandler
-	http.ListenAndServe(":8080", registerMiddlewares(server.router))
-	return server
+	server.router.POST("/chat/send", server.sendMessageHandler)
+	server.router.POST("/chat/create", server.createChatHandler)
+	server.router.PanicHandler = crashHandler
+	go func() {
+		err := http.ListenAndServe(":8080", registerMiddlewares(server.router))
+		if err != nil {
+			panic(err.Error())
+		}
+	}()
 }
 
-func (h HttpServer) chatHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *HttpServer) createChatHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	chatId := uuid.NewString()
+	err := h.chatService.CreateChat(chatId, "")
+	if err != nil && err != inmemory_storage.ErrChatAlreadyExists {
+		badRequest(w, "server", err.Error())
+		return
+	}
+	setChatIdCookie(w, chatId)
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *HttpServer) sendMessageHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var customerMessage IncomingMessage
 	err := json.NewDecoder(r.Body).Decode(&customerMessage)
 	if err != nil {
@@ -41,11 +48,6 @@ func (h HttpServer) chatHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	}
 	chatIdCookie, err := r.Cookie("chatId")
 	if err != nil || !isValidUUID(chatIdCookie.Value) {
-		chatIdCookie = setChatIdCookie(w, uuid.NewString())
-	}
-	//FIXME context
-	err = h.chatService.CreateChat(chatIdCookie.Value, "")
-	if err != nil && err != inmemory_storage.ErrChatAlreadyExists {
 		badRequest(w, "client", err.Error())
 		return
 	}
