@@ -41,7 +41,7 @@ func (g Model) SendMessageStream(w io.Writer, content, chatId string) error {
 		if err == iterator.Done {
 			return nil
 		}
-		if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		if len(resp.Candidates) == 0 {
 			return errEmptyResponse
 		}
 		if err != nil {
