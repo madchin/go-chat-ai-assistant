@@ -1,17 +1,12 @@
 package service
 
 import (
-	"bytes"
-	"io"
-
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 )
 
-const maxResponseLength = 1024
-
 type AssistantService interface {
-	SendMessage(w io.Writer, content, chatId string) error
-	SendMessageStream(w io.Writer, content, chatId string) error
+	SendMessage(content, chatId string) (chat.Message, error)
+	SendMessageStream(response chan<- string, content, chatId string) (chat.Message, error)
 }
 
 type ChatService struct {
@@ -27,48 +22,30 @@ func (c *ChatService) CreateChat(chatId, context string) error {
 	return c.storage.CreateChat(chatId, context)
 }
 
-func (c *ChatService) SendMessage(chatId string, msg chat.Message) (chat.Message, error) {
-	if err := c.storage.SendMessage(chatId, msg); err != nil {
+func (c *ChatService) SendMessage(chatId string, customerMsg chat.Message) (chat.Message, error) {
+	if err := c.storage.SendMessage(chatId, customerMsg); err != nil {
 		return chat.Message{}, err
 	}
-	buf := make([]byte, 0, maxResponseLength)
-	buffer := bytes.NewBuffer(buf)
-	if err := c.assistant.SendMessage(buffer, msg.Content(), chatId); err != nil {
-		return chat.Message{}, err
-	}
-	content, err := io.ReadAll(buffer)
+	assistantResponse, err := c.assistant.SendMessage(customerMsg.Content(), chatId)
 	if err != nil {
 		return chat.Message{}, err
 	}
-	assistantMsg, err := chat.NewMessage(chat.Assistant, string(content))
-	if err != nil {
+	if err := c.storage.SendMessage(chatId, assistantResponse); err != nil {
 		return chat.Message{}, err
 	}
-	if err := c.storage.SendMessage(chatId, assistantMsg); err != nil {
-		return chat.Message{}, err
-	}
-	return assistantMsg, nil
+	return assistantResponse, nil
+
 }
 
-func (c *ChatService) SendMessageStream(w io.Writer, chatId string, msg chat.Message) error {
-	if err := c.storage.SendMessage(chatId, msg); err != nil {
+func (c *ChatService) SendMessageStream(responseCh chan<- string, chatId string, customerMsg chat.Message) error {
+	if err := c.storage.SendMessage(chatId, customerMsg); err != nil {
 		return err
 	}
-	sBuf := make([]byte, 0, maxResponseLength)
-	storageBuf := bytes.NewBuffer(sBuf)
-	multiWriter := io.MultiWriter(w, storageBuf)
-	if err := c.assistant.SendMessageStream(multiWriter, msg.Content(), chatId); err != nil {
-		return err
-	}
-	content, err := io.ReadAll(storageBuf)
+	assistantResponse, err := c.assistant.SendMessageStream(responseCh, customerMsg.Content(), chatId)
 	if err != nil {
 		return err
 	}
-	assistantMsg, err := chat.NewMessage(chat.Assistant, string(content))
-	if err != nil {
-		return err
-	}
-	if err := c.storage.SendMessage(chatId, assistantMsg); err != nil {
+	if err := c.storage.SendMessage(chatId, assistantResponse); err != nil {
 		return err
 	}
 	return nil

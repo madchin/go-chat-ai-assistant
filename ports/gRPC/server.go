@@ -1,11 +1,9 @@
 package grpc_server
 
 import (
-	"bytes"
 	context "context"
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
@@ -49,11 +47,11 @@ func (g *GrpcServer) CreateChat(ctx context.Context, chat *ChatRequest) (*ChatRe
 func (g *GrpcServer) SendMessage(ctx context.Context, msg *MessageRequest) (*MessageResponse, error) {
 	chatId := msg.GetChatId()
 	content := msg.GetContent()
-	domainMsg, err := chat.NewMessage(chat.Customer, content)
+	customerMsg, err := chat.NewCustomerMessage(content)
 	if err != nil {
 		return &MessageResponse{}, err
 	}
-	response, err := g.service.SendMessage(chatId, domainMsg)
+	response, err := g.service.SendMessage(chatId, customerMsg)
 	if err != nil {
 		return &MessageResponse{}, err
 	}
@@ -63,20 +61,35 @@ func (g *GrpcServer) SendMessage(ctx context.Context, msg *MessageRequest) (*Mes
 func (g *GrpcServer) SendMessageStream(msg *MessageRequest, stream Chat_SendMessageStreamServer) error {
 	chatId := msg.GetChatId()
 	content := msg.GetContent()
-	domainMsg, err := chat.NewMessage(chat.Customer, content)
+	customerMsg, err := chat.NewCustomerMessage(content)
 	if err != nil {
 		return err
 	}
-	buffer := bytes.NewBuffer(make([]byte, 0, 128))
-	go func() {
-		for {
-			time.Sleep(time.Millisecond * 50)
-			stream.Send(&MessageResponse{Author: chat.Assistant.Role(), Content: buffer.String()})
-		}
-	}()
-	err = g.service.SendMessageStream(buffer, chatId, domainMsg)
+	assistantResponseCh := make(chan string)
+	errCh := make(chan error)
+	go streamResponsePart(assistantResponseCh, errCh, stream)
+	err = g.service.SendMessageStream(assistantResponseCh, chatId, customerMsg)
 	if err != nil {
+		return err
+	}
+	if err = <-errCh; err != nil {
 		return err
 	}
 	return nil
+}
+
+func streamResponsePart(partialResponseCh <-chan string, errCh chan<- error, stream Chat_SendMessageStreamServer) {
+	for {
+		responsePart, waitForNextPart := <-partialResponseCh
+		if !waitForNextPart {
+			errCh <- nil
+			return
+		}
+		if err := stream.Send(&MessageResponse{Author: chat.Assistant.Role(), Content: responsePart}); err != nil {
+			errCh <- err
+			close(errCh)
+			return
+		}
+	}
+
 }

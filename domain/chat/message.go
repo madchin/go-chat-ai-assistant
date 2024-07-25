@@ -22,8 +22,8 @@ type Message struct {
 	timestamp int64
 }
 
-func NewMessage(author Participant, content string) (Message, error) {
-	msg := Message{author, content, time.Now().UnixMilli()}
+func NewCustomerMessage(content string) (Message, error) {
+	msg := Message{Customer, content, time.Now().UnixMilli()}
 	if msg.author == Customer {
 		if err := msg.validateContent(); err != nil {
 			return Message{}, err
@@ -32,12 +32,17 @@ func NewMessage(author Participant, content string) (Message, error) {
 	return msg, nil
 }
 
+func NewAssistantMessage(content string) Message {
+	msg := Message{Assistant, content, time.Now().UnixMilli()}
+	return msg
+}
+
 func NewValidMessageWithTimestamp(timestamp int64) Message {
 	return Message{Customer, strings.Repeat("a", minCharLength+1), timestamp}
 }
 
 func NewValidMessage() Message {
-	msg, _ := NewMessage(Customer, strings.Repeat("a", minCharLength+1))
+	msg, _ := NewCustomerMessage(strings.Repeat("a", minCharLength+1))
 	return msg
 }
 
