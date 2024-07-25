@@ -17,7 +17,7 @@ type HttpError struct {
 }
 
 func (i IncomingMessage) toDomainMessage() (chat.Message, error) {
-	msg, err := chat.NewMessage(chat.Customer, i.Content)
+	msg, err := chat.NewCustomerMessage(i.Content)
 	if err != nil {
 		return chat.Message{}, err
 	}

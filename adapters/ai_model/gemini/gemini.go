@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/vertexai/genai"
 	inmemory_storage "github.com/madchin/go-chat-ai-assistant/adapters/repository/in_memory"
+	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 	"google.golang.org/api/iterator"
 )
 
@@ -27,52 +28,68 @@ func NewModel(model, projectId, location string) Model {
 	return Model{model, projectId, location, make(map[string]*connection, inmemory_storage.ChatsCapacity)}
 }
 
-func (g Model) SendMessageStream(w io.Writer, content, chatId string) error {
+func (g Model) SendMessageStream(responseCh chan<- string, content, chatId string) (msg chat.Message, err error) {
 	ctx := context.Background()
 	client, err := g.createClientConnection(ctx, chatId)
 	if err != nil {
-		return errClientGeneration
+		err = errClientGeneration
+		return
 	}
 	model := client.GenerativeModel(g.model)
-	msg := genai.Text(content)
-	streamIterator := model.GenerateContentStream(ctx, msg)
+	phrase := genai.Text(content)
+	streamIterator := model.GenerateContentStream(ctx, phrase)
+	responseMsgContent := ""
 	for {
 		resp, err := streamIterator.Next()
+		if resp == nil {
+			break
+		}
 		if err == iterator.Done {
-			return nil
+			break
 		}
 		if len(resp.Candidates) == 0 {
-			return errEmptyResponse
+			err = errEmptyResponse
+			break
 		}
 		if err != nil {
-			return errUnexpected
+			err = errUnexpected
+			break
 		}
 		for _, candidate := range resp.Candidates {
 			for _, part := range candidate.Content.Parts {
-				fmt.Fprintf(w, "%s ", part)
+				trimmedPart := strings.TrimSpace(fmt.Sprintf("%s", part))
+				responseMsgContent += trimmedPart
+				responseCh <- trimmedPart
 			}
 		}
 	}
+	close(responseCh)
+	msg = chat.NewAssistantMessage(responseMsgContent)
+	return
 }
 
-func (g Model) SendMessage(w io.Writer, content, chatId string) error {
+func (g Model) SendMessage(content, chatId string) (msg chat.Message, err error) {
 	ctx := context.Background()
 	client, err := g.createClientConnection(ctx, chatId)
 	if err != nil {
-		return errClientGeneration
+		err = errClientGeneration
+		return
 	}
-	Model := client.GenerativeModel(g.model)
-	msg := genai.Text(content)
-	resp, err := Model.GenerateContent(ctx, msg)
+	model := client.GenerativeModel(g.model)
+	phrase := genai.Text(content)
+	resp, err := model.GenerateContent(ctx, phrase)
 	if err != nil {
-		return err
+		return
 	}
+	responseMsgContent := ""
 	for _, c := range resp.Candidates {
-		for _, p := range c.Content.Parts {
-			fmt.Fprintf(w, "%s ", p)
+		for _, part := range c.Content.Parts {
+			trimmedPart := strings.TrimSpace(fmt.Sprintf("%s", part))
+			responseMsgContent += trimmedPart
 		}
 	}
-	return nil
+	msg = chat.NewAssistantMessage(responseMsgContent)
+	return
 }
 
 func (g Model) createClientConnection(ctx context.Context, chatId string) (*connection, error) {

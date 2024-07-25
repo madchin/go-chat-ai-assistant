@@ -143,7 +143,7 @@ func TestDequeueWhenConversationIsEmpty(t *testing.T) {
 
 func TestDequeueLastElementInConversation(t *testing.T) {
 	cnvrst := &conversation{}
-	enqueueMsg, err := NewMessage(Customer, "example")
+	enqueueMsg, err := NewCustomerMessage("example")
 	if err != nil {
 		t.Fatalf("Unexpected error occured during creating message, err: %v", err)
 	}
@@ -168,11 +168,11 @@ func TestDequeueLastElementInConversation(t *testing.T) {
 
 func TestDequeueTwoElementsAfterEachOther(t *testing.T) {
 	cnvrst := &conversation{}
-	firstMsg, err := NewMessage(Customer, strings.Repeat("f", minCharLength+1))
+	firstMsg, err := NewCustomerMessage(strings.Repeat("f", minCharLength+1))
 	if err != nil {
 		t.Fatalf("Unexpected error occured during creating first message, err: %v", err)
 	}
-	secondMsg, err := NewMessage(Customer, strings.Repeat("s", minCharLength+1))
+	secondMsg, err := NewCustomerMessage(strings.Repeat("s", minCharLength+1))
 	if err != nil {
 		t.Fatalf("Unexpected error occured during creating second message, err: %v", err)
 	}
@@ -269,7 +269,7 @@ func seedMessages(count int) ([]Message, error) {
 	msgs := make([]Message, count)
 	for i := 0; i < count; i++ {
 		content := strings.Repeat(fmt.Sprintf("%d", i), minCharLength+1)
-		msg, err := NewMessage(Customer, content)
+		msg, err := NewCustomerMessage(content)
 		if err != nil {
 			return nil, err
 		}
