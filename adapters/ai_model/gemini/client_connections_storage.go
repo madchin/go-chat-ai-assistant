@@ -35,7 +35,6 @@ func (connections connections) bindChatToClientConnection(chatId string, connect
 func (connections connections) RemoveOutdatedConnections() {
 	for id, connection := range connections {
 		if connection.isOutdated() {
-			connection.Close()
 			connections.removeConnection(id)
 		}
 	}
@@ -45,6 +44,7 @@ func (connections connections) removeConnection(chatId string) {
 	if !isChatConnectionEstablished(chatId, connections) {
 		return
 	}
+	connections[chatId].Close()
 	delete(connections, chatId)
 }
 
