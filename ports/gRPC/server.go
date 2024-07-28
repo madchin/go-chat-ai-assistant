@@ -9,6 +9,7 @@ import (
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 	"github.com/madchin/go-chat-ai-assistant/ports"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type GrpcServer struct {
@@ -21,9 +22,11 @@ func RegisterGrpcServer(service ports.ChatService, host string, port int) {
 	if err != nil {
 		panic(err.Error())
 	}
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
-
+	creds,err := credentials.NewServerTLSFromFile("./cert/serv.cert","./cert/priv.key")
+	if err != nil {
+		panic(err.Error())
+	}
+	grpcServer := grpc.NewServer(grpc.Creds(creds))
 	RegisterChatServer(grpcServer, chatServer)
 	go func() {
 		err = grpcServer.Serve(lis)
@@ -31,6 +34,7 @@ func RegisterGrpcServer(service ports.ChatService, host string, port int) {
 			panic(err.Error())
 		}
 	}()
+
 }
 
 func (g *GrpcServer) mustEmbedUnimplementedChatServer() {}
