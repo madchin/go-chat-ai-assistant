@@ -22,7 +22,7 @@ func RegisterGrpcServer(service ports.ChatService, host string, port int) {
 	if err != nil {
 		panic(err.Error())
 	}
-	creds,err := credentials.NewServerTLSFromFile("./cert/serv.cert","./cert/priv.key")
+	creds, err := credentials.NewServerTLSFromFile("./cert/serv.cert", "./cert/priv.key")
 	if err != nil {
 		panic(err.Error())
 	}

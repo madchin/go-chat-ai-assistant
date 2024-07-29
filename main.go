@@ -1,11 +1,18 @@
 package main
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/madchin/go-chat-ai-assistant/adapters/ai_model/gemini"
 	inmemory_storage "github.com/madchin/go-chat-ai-assistant/adapters/repository/in_memory"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
+	grpc_server "github.com/madchin/go-chat-ai-assistant/ports/gRPC"
 	http_server "github.com/madchin/go-chat-ai-assistant/ports/http"
+
 	service "github.com/madchin/go-chat-ai-assistant/services"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type historyRepositoryMock struct{}
@@ -22,8 +29,22 @@ func main() {
 	storage := inmemory_storage.New()
 	model := gemini.NewModel("gemini-1.5-flash-001", "randomProjectId", "us-central1")
 	application := service.NewApplication(storage, &historyRepositoryMock{}, model.Connections, storage, model)
-	http_server.NewHttpServer(&application.ChatService)
-
+	http_server.RegisterHttpServer(&application.ChatService)
+	grpc_server.RegisterGrpcServer(&application.ChatService, "127.0.0.1", 8081)
+	creds, err := credentials.NewClientTLSFromFile("cert/serv.cert", "chat.grpc-server.com")
+	if err != nil {
+		panic(err)
+	}
+	conn, err := grpc.NewClient("127.0.0.1:8081", grpc.WithTransportCredentials(creds))
+	if err != nil {
+		panic(err)
+	}
+	grpcClient := grpc_server.NewChatClient(conn)
+	resp, err := grpcClient.CreateChat(context.Background(), &grpc_server.ChatRequest{})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(resp.GetChatId())
 	// err := storage.CreateChat("1", "")
 	// if err != nil {
 	// 	fmt.Printf("err is %v", err)
@@ -31,8 +52,8 @@ func main() {
 	// storage.CreateChat("2", "")
 	// storage.CreateChat("3", "")
 	// storage.CreateChat("4", "")
-
 	// err = storage.SendMessage("1", chat.NewMessage(chat.Customer, "1111111"))
+
 	// if err != nil {
 	// 	fmt.Printf("err is %v", err)
 	// }
