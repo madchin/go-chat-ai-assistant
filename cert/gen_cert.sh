@@ -4,7 +4,7 @@
 openssl genpkey -out priv.key -outpubkey pub.key -algorithm RSA -pkeyopt rsa_keygen_bits:4096
 
 # 2. Generate root CA priv key
-openssl genpkey -out ca-priv.key -outpubkey ca-pub.key -algorithm RSA -pkeyopt rsa_keygen_bits:4096
+openssl genpkey -out ca-priv.key -algorithm RSA -pkeyopt rsa_keygen_bits:4096
 
 # 3. Generate root CA certificate
 openssl x509 -new -key ca-priv.key -subj "/C=PL/ST=State/L=City/O=Company/OU=Section/CN=root.ca.com" -out ca.cert
