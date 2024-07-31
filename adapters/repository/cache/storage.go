@@ -1,4 +1,4 @@
-package inmemory_storage
+package cache
 
 import (
 	"errors"
@@ -18,16 +18,16 @@ const (
 
 type userChats map[string]*chat.Chat
 
-type Storage struct {
+type storage struct {
 	chats userChats
 	mu    sync.Mutex
 }
 
-func New() *Storage {
-	return &Storage{chats: make(userChats, ChatsCapacity)}
+func New() *storage {
+	return &storage{chats: make(userChats, ChatsCapacity)}
 }
 
-func (s *Storage) CreateChat(id, context string) error {
+func (s *storage) CreateChat(id, context string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.chat(id) != nil {
@@ -37,7 +37,7 @@ func (s *Storage) CreateChat(id, context string) error {
 	return nil
 }
 
-func (s *Storage) SendMessage(chatId string, msg chat.Message) error {
+func (s *storage) SendMessage(chatId string, msg chat.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.chat(chatId) == nil {
@@ -49,21 +49,24 @@ func (s *Storage) SendMessage(chatId string, msg chat.Message) error {
 	return nil
 }
 
-func (s *Storage) RemoveOutdatedMessages() chat.UserMessages {
+func (s *storage) RemoveOutdatedMessages() chat.ChatMessages {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	usersMessages := make(chat.UserMessages, len(s.chats))
+	usersMessages := make(chat.ChatMessages, len(s.chats))
 	for chatId, c := range s.chats {
 		removedMsgs := s.removeOutdatedChatMessages(c)
 		usersMessages[chatId] = removedMsgs
+		if c.IsConversationEmpty() {
+			delete(s.chats, chatId)
+		}
 	}
 	return usersMessages
 }
 
-func (s *Storage) RetrieveAllConversations() (chat.UserMessages, error) {
+func (s *storage) RetrieveAllConversations() (chat.ChatMessages, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	usersMessages := make(chat.UserMessages, len(s.chats))
+	usersMessages := make(chat.ChatMessages, len(s.chats))
 	for chatId, chat := range s.chats {
 		msgs, _ := chat.Conversation()
 		if len(msgs) > 0 {
@@ -73,17 +76,7 @@ func (s *Storage) RetrieveAllConversations() (chat.UserMessages, error) {
 	return usersMessages, nil
 }
 
-func (s *Storage) RemoveEmptyChats() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for id, ch := range s.chats {
-		if ch.IsConversationEmpty() {
-			delete(s.chats, id)
-		}
-	}
-}
-
-func (s *Storage) chat(id string) *chat.Chat {
+func (s *storage) chat(id string) *chat.Chat {
 	chat, ok := s.chats[id]
 	if !ok {
 		return nil
@@ -91,7 +84,7 @@ func (s *Storage) chat(id string) *chat.Chat {
 	return chat
 }
 
-func (s *Storage) removeOutdatedChatMessages(c *chat.Chat) []chat.Message {
+func (s *storage) removeOutdatedChatMessages(c *chat.Chat) []chat.Message {
 	msgs := make([]chat.Message, 0, c.Size())
 	for {
 		msg, err := c.RemoveMessage(chat.MaxMessageTime)

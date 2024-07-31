@@ -1,4 +1,4 @@
-package inmemory_storage
+package cache
 
 import (
 	"fmt"
@@ -140,7 +140,7 @@ func TestRetrievingAllConversations(t *testing.T) {
 	}
 }
 
-func newStorageWithChat(chatId, context string, t *testing.T) *Storage {
+func newStorageWithChat(chatId, context string, t *testing.T) *storage {
 	storage := New()
 	err := storage.CreateChat(chatId, context)
 	if err != nil {
@@ -149,7 +149,7 @@ func newStorageWithChat(chatId, context string, t *testing.T) *Storage {
 	return storage
 }
 
-func seedChatWithMessages(storage *Storage, chatId string, msgs []chat.Message) {
+func seedChatWithMessages(storage *storage, chatId string, msgs []chat.Message) {
 	for _, msg := range msgs {
 		storage.SendMessage(chatId, msg)
 	}
@@ -173,7 +173,7 @@ func outdatedMessages(count int) []chat.Message {
 	return msgs
 }
 
-func allConversationsMessageCount(storage *Storage) (count int) {
+func allConversationsMessageCount(storage *storage) (count int) {
 	retrievedMsgs, _ := storage.RetrieveAllConversations()
 	for _, msgs := range retrievedMsgs {
 		count += len(msgs)
