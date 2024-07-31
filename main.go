@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
+	firebase "firebase.google.com/go"
 	"github.com/madchin/go-chat-ai-assistant/adapters/ai_model/gemini"
-	inmemory_storage "github.com/madchin/go-chat-ai-assistant/adapters/repository/in_memory"
-	"github.com/madchin/go-chat-ai-assistant/domain/chat"
+	"github.com/madchin/go-chat-ai-assistant/adapters/repository/cache"
+	"github.com/madchin/go-chat-ai-assistant/adapters/repository/history"
 	grpc_server "github.com/madchin/go-chat-ai-assistant/ports/gRPC"
 	http_server "github.com/madchin/go-chat-ai-assistant/ports/http"
 
@@ -15,20 +18,13 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-type historyRepositoryMock struct{}
-
-func (h *historyRepositoryMock) SaveHistory(um chat.UserMessages) error {
-	return nil
-}
-
-func (h *historyRepositoryMock) RetrieveAllChatsHistory() (chat.UserMessages, error) {
-	return chat.UserMessages{}, nil
-}
-
 func main() {
-	storage := inmemory_storage.New()
-	model := gemini.NewModel("gemini-1.5-flash-001", "randomProjectId", "us-central1")
-	application := service.NewApplication(storage, &historyRepositoryMock{}, model.Connections, storage, model)
+	history := history.New(&firebase.Config{
+		ProjectID: "rand",
+	})
+	storage := cache.New()
+	model := gemini.NewModel("gemini-1.5-flash-001", "rand", "us-central1")
+	application := service.NewApplication(storage, history, model.Connections, storage, model)
 	http_server.RegisterHttpServer(&application.ChatService)
 	grpc_server.RegisterGrpcServer(&application.ChatService, "127.0.0.1", 8081)
 	creds, err := credentials.NewClientTLSFromFile("cert/serv.cert", "chat.grpc-server.com")
@@ -45,6 +41,31 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(resp.GetChatId())
+	resp2, err := grpcClient.CreateChat(context.Background(), &grpc_server.ChatRequest{})
+	if err != nil {
+		panic(err)
+	}
+	iter := 0
+	for {
+		respp, err := grpcClient.SendMessage(context.Background(), &grpc_server.MessageRequest{ChatId: resp.GetChatId(), Content: fmt.Sprintf("Hello Yabadubi %d", iter)})
+		iter++
+		if err != nil {
+			log.Printf("error during sending message%v", err)
+		} else {
+			log.Printf("full message is %s %s", respp.GetAuthor(), respp.GetContent())
+		}
+
+		<-time.After(time.Millisecond * time.Duration(10000))
+		respp2, err := grpcClient.SendMessage(context.Background(), &grpc_server.MessageRequest{ChatId: resp2.GetChatId(), Content: fmt.Sprintf("Hello AAHAHAH %d", iter)})
+		iter++
+		if err != nil {
+			log.Printf("error during sending message%v", err)
+		} else {
+			log.Printf("full message is %s %s", respp2.GetAuthor(), respp2.GetContent())
+		}
+
+		<-time.After(time.Millisecond * time.Duration(10000))
+	}
 	// err := storage.CreateChat("1", "")
 	// if err != nil {
 	// 	fmt.Printf("err is %v", err)
