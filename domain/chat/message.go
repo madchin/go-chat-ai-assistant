@@ -50,6 +50,10 @@ func (m Message) Content() string {
 	return m.content
 }
 
+func (m Message) Timestamp() int64 {
+	return m.timestamp
+}
+
 func (m Message) Author() Participant {
 	return m.author
 }
