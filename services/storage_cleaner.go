@@ -11,8 +11,7 @@ const (
 )
 
 type StorageService interface {
-	RemoveOutdatedMessages() chat.UserMessages
-	RemoveEmptyChats()
+	RemoveOutdatedMessages() chat.ChatMessages
 }
 
 type PeriodicCleanUp struct {
@@ -22,7 +21,7 @@ type PeriodicCleanUp struct {
 }
 
 type History interface {
-	SaveHistory(chat.UserMessages) error
+	SaveHistory(chat.ChatMessages)
 }
 
 func newPeriodicCleanUpService(storage StorageService, history History) *PeriodicCleanUp {
@@ -30,7 +29,6 @@ func newPeriodicCleanUpService(storage StorageService, history History) *Periodi
 	go func() {
 		for {
 			service.flushOutdatedMessages(history)
-			service.removeEmptyChats()
 			time.Sleep(time.Millisecond * time.Duration(service.interval))
 		}
 	}()
@@ -41,8 +39,4 @@ func (p *PeriodicCleanUp) flushOutdatedMessages(history History) {
 	if msgs := p.storage.RemoveOutdatedMessages(); len(msgs) > 0 {
 		history.SaveHistory(msgs)
 	}
-}
-
-func (p *PeriodicCleanUp) removeEmptyChats() {
-	p.storage.RemoveEmptyChats()
 }
