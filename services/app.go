@@ -5,8 +5,8 @@ import (
 )
 
 type Application struct {
-	ChatService                      ChatService
-	HistoryService                   historyService
+	ChatService                      *ChatService
+	HistoryRetrieveService           *HistoryRetrieveService
 	periodicStorageCleanUp           *PeriodicCleanUp
 	periodicClientConnectionsCleanUp *periodicClientConnectionsCleanUp
 }
@@ -20,7 +20,7 @@ func NewApplication(
 ) *Application {
 	return &Application{
 		ChatService:                      NewChatService(assistant, storage),
-		HistoryService:                   NewHistoryService(history),
+		HistoryRetrieveService:           NewHistoryRetrieveService(history),
 		periodicStorageCleanUp:           newPeriodicCleanUpService(storageService, history),
 		periodicClientConnectionsCleanUp: newClientConnectionsCleanUpService(clientConnectionsStorageService),
 	}

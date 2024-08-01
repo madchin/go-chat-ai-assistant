@@ -14,8 +14,8 @@ type ChatService struct {
 	storage   chat.Repository
 }
 
-func NewChatService(assistant AssistantService, storage chat.Repository) ChatService {
-	return ChatService{assistant, storage}
+func NewChatService(assistant AssistantService, storage chat.Repository) *ChatService {
+	return &ChatService{assistant, storage}
 }
 
 func (c *ChatService) CreateChat(chatId, context string) error {

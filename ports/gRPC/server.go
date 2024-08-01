@@ -7,18 +7,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
-	"github.com/madchin/go-chat-ai-assistant/ports"
+	service "github.com/madchin/go-chat-ai-assistant/services"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 type GrpcServer struct {
-	chatService    ports.ChatService
-	historyService ports.HistoryRetrieverService
+	chatService            *service.ChatService
+	historyRetrieveService *service.HistoryRetrieveService
 }
 
-func RegisterGrpcServer(chatService ports.ChatService, historyService ports.HistoryRetrieverService, host string, port int) {
-	chatServer := &GrpcServer{chatService, historyService}
+func Register(chatService *service.ChatService, historyRetrieveService *service.HistoryRetrieveService, host string, port int) {
+	chatServer := &GrpcServer{chatService, historyRetrieveService}
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		panic(err.Error())
@@ -44,7 +44,7 @@ func (g *GrpcServer) RetrieveHistory(_ *HistoryRetrieveRequest, stream Chat_Retr
 	errCh := make(chan error)
 	partialResponseCh := make(chan chat.ChatMessages)
 	go streamRetrieveHistoryPartialContent(partialResponseCh, errCh, stream)
-	err := g.historyService.RetrieveAllChatsHistory(partialResponseCh)
+	err := g.historyRetrieveService.RetrieveAllChatsHistory(partialResponseCh)
 	if err != nil {
 		return err
 	}
@@ -53,15 +53,6 @@ func (g *GrpcServer) RetrieveHistory(_ *HistoryRetrieveRequest, stream Chat_Retr
 	}
 	return nil
 }
-
-// func (g *GrpcServer) RetrieveHistory(ctx context.Context, _ *HistoryRetrieveRequest) (*HistoryRetrieveResponse, error) {
-// 	history, err := g.historyService.RetrieveAllChatsHistory()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	resp := mapDomainChatMessagesToHistoryResponse(history)
-// 	return resp, nil
-// }
 
 func (g *GrpcServer) CreateChat(ctx context.Context, chat *ChatRequest) (*ChatResponse, error) {
 	chatId := uuid.NewString()

@@ -23,3 +23,7 @@ func (i IncomingMessage) toDomainMessage() (chat.Message, error) {
 	}
 	return msg, nil
 }
+
+func mapDomainMessageToOutcomingMessage(domainMsg chat.Message) OutcomingMessage {
+	return OutcomingMessage{Author: domainMsg.Author().Role(), Content: domainMsg.Content()}
+}

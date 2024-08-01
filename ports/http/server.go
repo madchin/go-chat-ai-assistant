@@ -7,15 +7,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/madchin/go-chat-ai-assistant/adapters/repository/cache"
-	"github.com/madchin/go-chat-ai-assistant/ports"
+	service "github.com/madchin/go-chat-ai-assistant/services"
 )
 
 type HttpServer struct {
-	chatService ports.ChatService
+	chatService *service.ChatService
 	router      *httprouter.Router
 }
 
-func RegisterHttpServer(chatService ports.ChatService) {
+func Register(chatService *service.ChatService) {
 	server := &HttpServer{chatService, httprouter.New()}
 	server.router.POST("/chat/send", server.sendMessageHandler)
 	server.router.POST("/chat/create", server.createChatHandler)
@@ -62,10 +62,10 @@ func (h *HttpServer) sendMessageHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	assistantMessage := OutcomingMessage{Author: msg.Author().Role(), Content: msg.Content()}
+	assistantMessage := mapDomainMessageToOutcomingMessage(msg)
 	err = json.NewEncoder(w).Encode(&assistantMessage)
 	if err != nil {
-		badRequest(w, "internal", err.Error())
+		internal(w)
 	}
 
 }
