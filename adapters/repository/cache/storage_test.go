@@ -64,8 +64,11 @@ func TestSendMessageToNotExistingChat(t *testing.T) {
 	storage := New()
 	msg := chat.NewValidMessage()
 	err := storage.SendMessage(chatId, msg)
-	if err != errChatNotExists {
-		t.Fatalf("unexpected error occured\n Expected %v \n Actual: %v", errChatNotExists, err)
+	if err != nil {
+		t.Fatalf("chat should be created upfront, but error occured: %v", err)
+	}
+	if storage.chats[chatId].Size() != 1 {
+		t.Fatalf("message has not been sent. actual conversation size: %d, expected: %d", storage.chats[chatId].Size(), 1)
 	}
 }
 

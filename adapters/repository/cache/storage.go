@@ -30,18 +30,14 @@ func New() *storage {
 func (s *storage) CreateChat(id, context string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.chat(id) != nil {
-		return ErrChatAlreadyExists
-	}
-	s.chats[id] = chat.NewChat(context)
-	return nil
+	return s.createChat(id, context)
 }
 
 func (s *storage) SendMessage(chatId string, msg chat.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.chat(chatId) == nil {
-		return errChatNotExists
+		_ = s.createChat(chatId, "")
 	}
 	if err := s.chats[chatId].SendMessage(msg); err != nil {
 		return err
@@ -74,6 +70,14 @@ func (s *storage) RetrieveAllConversations() (chat.ChatMessages, error) {
 		}
 	}
 	return usersMessages, nil
+}
+
+func (s *storage) createChat(id, context string) error {
+	if s.chat(id) != nil {
+		return ErrChatAlreadyExists
+	}
+	s.chats[id] = chat.NewChat(context)
+	return nil
 }
 
 func (s *storage) chat(id string) *chat.Chat {
