@@ -1,14 +1,9 @@
-package gemini
+package assistant
 
 import (
-	"errors"
 	"time"
 
 	"cloud.google.com/go/vertexai/genai"
-)
-
-var (
-	errChatConnectionAlreadyEstablished = errors.New("chat is already connected with model")
 )
 
 const expiryTime = 240_000
@@ -22,14 +17,6 @@ type connections map[string]*connection
 
 func NewConnection(client *genai.Client, establishTime int64) *connection {
 	return &connection{establishTime, client}
-}
-
-func (connections connections) bindChatToClientConnection(chatId string, connection *connection) error {
-	if isChatConnectionEstablished(chatId, connections) {
-		return errChatConnectionAlreadyEstablished
-	}
-	connections[chatId] = connection
-	return nil
 }
 
 func (connections connections) RemoveOutdatedConnections() {
@@ -54,5 +41,5 @@ func isChatConnectionEstablished(chatId string, connections connections) bool {
 }
 
 func (connection connection) isOutdated() bool {
-	return time.Now().Unix()-connection.establishTime+expiryTime > 0
+	return time.Now().Unix()-connection.establishTime > expiryTime
 }
