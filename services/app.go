@@ -4,24 +4,40 @@ import (
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 )
 
+type services struct {
+	Chat    *ChatService
+	History *HistoryRetrieveService
+}
+
+type cleanUpWorkers struct {
+	cache                   *periodicCleanUp
+	geminiClientConnections *periodicClientConnectionsCleanUp
+}
+
 type Application struct {
-	ChatService                      ChatService
-	HistoryService                   historyService
-	periodicStorageCleanUp           *PeriodicCleanUp
-	periodicClientConnectionsCleanUp *periodicClientConnectionsCleanUp
+	Service        *services
+	cleanUpWorkers *cleanUpWorkers
+}
+
+type storageService interface {
+	chat.Repository
+	storageRemover
 }
 
 func NewApplication(
-	storage chat.Repository,
+	storage storageService,
 	history chat.HistoryRepository,
 	clientConnectionsStorageService clientConnectionsStorageService,
-	storageService StorageService,
-	assistant AssistantService,
+	assistant assistantService,
 ) *Application {
 	return &Application{
-		ChatService:                      NewChatService(assistant, storage),
-		HistoryService:                   NewHistoryService(history),
-		periodicStorageCleanUp:           newPeriodicCleanUpService(storageService, history),
-		periodicClientConnectionsCleanUp: newClientConnectionsCleanUpService(clientConnectionsStorageService),
+		Service: &services{
+			Chat:    NewChatService(assistant, storage),
+			History: NewHistoryRetrieveService(history),
+		},
+		cleanUpWorkers: &cleanUpWorkers{
+			cache:                   newPeriodicCleanUpService(storage, history),
+			geminiClientConnections: newClientConnectionsCleanUpService(clientConnectionsStorageService),
+		},
 	}
 }

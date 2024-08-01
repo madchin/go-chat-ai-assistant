@@ -2,7 +2,6 @@ package chat
 
 import (
 	"errors"
-	"strings"
 	"time"
 )
 
@@ -28,25 +27,14 @@ func NewMessage(author Participant, content string, timestamp int64) Message {
 
 func NewCustomerMessage(content string) (Message, error) {
 	msg := Message{Customer, content, time.Now().UnixMilli()}
-	if msg.author == Customer {
-		if err := msg.validateContent(); err != nil {
-			return Message{}, err
-		}
+	if err := msg.validateContent(); err != nil {
+		return Message{}, err
 	}
 	return msg, nil
 }
 
 func NewAssistantMessage(content string) Message {
 	msg := Message{Assistant, content, time.Now().UnixMilli()}
-	return msg
-}
-
-func NewValidMessageWithTimestamp(timestamp int64) Message {
-	return Message{Customer, strings.Repeat("a", minCharLength+1), timestamp}
-}
-
-func NewValidMessage() Message {
-	msg, _ := NewCustomerMessage(strings.Repeat("a", minCharLength+1))
 	return msg
 }
 

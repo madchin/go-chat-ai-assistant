@@ -4,18 +4,18 @@ import (
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 )
 
-type AssistantService interface {
+type assistantService interface {
 	SendMessage(content, chatId string) (chat.Message, error)
 	SendMessageStream(response chan<- string, content, chatId string) (chat.Message, error)
 }
 
 type ChatService struct {
-	assistant AssistantService
+	assistant assistantService
 	storage   chat.Repository
 }
 
-func NewChatService(assistant AssistantService, storage chat.Repository) ChatService {
-	return ChatService{assistant, storage}
+func NewChatService(assistant assistantService, storage chat.Repository) *ChatService {
+	return &ChatService{assistant, storage}
 }
 
 func (c *ChatService) CreateChat(chatId, context string) error {
