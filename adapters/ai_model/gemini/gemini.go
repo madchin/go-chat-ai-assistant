@@ -31,7 +31,7 @@ func NewModel(model, projectId, location string) Model {
 func (g Model) SendMessageStream(responseCh chan<- string, content, chatId string) (msg chat.Message, err error) {
 	ctx := context.Background()
 	client, err := g.createClientConnection(ctx, chatId)
-	if err != nil {
+	if err != errChatConnectionAlreadyEstablished && err != nil {
 		err = errClientGeneration
 		return
 	}
@@ -71,7 +71,7 @@ func (g Model) SendMessageStream(responseCh chan<- string, content, chatId strin
 func (g Model) SendMessage(content, chatId string) (msg chat.Message, err error) {
 	ctx := context.Background()
 	client, err := g.createClientConnection(ctx, chatId)
-	if err != nil {
+	if err != errChatConnectionAlreadyEstablished && err != nil {
 		err = errClientGeneration
 		return
 	}
