@@ -12,8 +12,7 @@ func TestAddingChat(t *testing.T) {
 	chatId := "chatId"
 	chatContext := "chatContext"
 	storage := newStorageWithChat(chatId, chatContext, t)
-
-	if chat := storage.chat(chatId); chat == nil {
+	if !storage.chatExists(chatId) {
 		t.Fatalf("chat has not been added to the storage")
 	}
 }
@@ -23,8 +22,8 @@ func TestAddingExistingChat(t *testing.T) {
 	chatContext := "chatContext"
 	storage := newStorageWithChat(chatId, chatContext, t)
 	err := storage.CreateChat(chatId, chatContext)
-	if err != ErrChatAlreadyExists {
-		t.Fatalf("error should be returned when creating chat for same user. \n Expected: %v \n Actual: %v", ErrChatAlreadyExists, err)
+	if err != errChatAlreadyExists {
+		t.Fatalf("error should be returned when creating chat for same user. \n Expected: %v \n Actual: %v", errChatAlreadyExists, err)
 	}
 }
 
@@ -40,7 +39,11 @@ func TestAddingChatWithContext(t *testing.T) {
 	chatId := "chatId"
 	for _, tc := range testCasesAddingChatWithContext {
 		storage := newStorageWithChat(chatId, tc.context, t)
-		chat := storage.chat(chatId)
+
+		chat, ok := storage.chats[chatId]
+		if !ok {
+			t.Fatal("Test case with name: %s failed.\n Chat not exists", tc.name)
+		}
 		if chat.Context() != tc.context {
 			t.Fatalf("Test case with name: %s failed.\n Context is wrong. \n Expected: %s\n Actual: %s", tc.name, tc.context, chat.Context())
 		}
@@ -177,9 +180,22 @@ func outdatedMessages(count int) []chat.Message {
 }
 
 func allConversationsMessageCount(storage *storage) (count int) {
-	retrievedMsgs, _ := storage.RetrieveAllConversations()
+	retrievedMsgs, _ := retrieveAllConversations(storage)
 	for _, msgs := range retrievedMsgs {
 		count += len(msgs)
 	}
 	return
+}
+
+func retrieveAllConversations(s *storage) (chat.ChatMessages, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	usersMessages := make(chat.ChatMessages, len(s.chats))
+	for chatId, chat := range s.chats {
+		msgs, _ := chat.Conversation()
+		if len(msgs) > 0 {
+			usersMessages[chatId] = msgs
+		}
+	}
+	return usersMessages, nil
 }

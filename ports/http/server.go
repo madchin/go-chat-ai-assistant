@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
-	"github.com/madchin/go-chat-ai-assistant/adapters/repository/cache"
 	service "github.com/madchin/go-chat-ai-assistant/services"
 )
 
@@ -31,7 +30,7 @@ func Register(chatService *service.ChatService) {
 func (h *HttpServer) createChatHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	chatId := uuid.NewString()
 	err := h.chatService.CreateChat(chatId, "")
-	if err != nil && err != cache.ErrChatAlreadyExists {
+	if err != nil {
 		badRequest(w, "server", err.Error())
 		return
 	}

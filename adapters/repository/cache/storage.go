@@ -8,8 +8,7 @@ import (
 )
 
 var (
-	ErrChatAlreadyExists = errors.New("chat already exists")
-	errChatNotExists     = errors.New("chat not exists")
+	errChatAlreadyExists = errors.New("chat already exists")
 )
 
 const (
@@ -36,7 +35,7 @@ func (s *storage) CreateChat(id, context string) error {
 func (s *storage) SendMessage(chatId string, msg chat.Message) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.chat(chatId) == nil {
+	if !s.chatExists(chatId) {
 		_ = s.createChat(chatId, "")
 	}
 	if err := s.chats[chatId].SendMessage(msg); err != nil {
@@ -48,51 +47,34 @@ func (s *storage) SendMessage(chatId string, msg chat.Message) error {
 func (s *storage) RemoveOutdatedMessages() chat.ChatMessages {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	usersMessages := make(chat.ChatMessages, len(s.chats))
-	for chatId, c := range s.chats {
-		removedMsgs := s.removeOutdatedChatMessages(c)
-		usersMessages[chatId] = removedMsgs
-		if c.IsConversationEmpty() {
+	removedMessages := make(chat.ChatMessages, len(s.chats))
+	for chatId, chat := range s.chats {
+		removedMessages[chatId] = s.removeOutdatedChatMessages(chat)
+		if chat.IsConversationEmpty() {
 			delete(s.chats, chatId)
 		}
 	}
-	return usersMessages
-}
-
-func (s *storage) RetrieveAllConversations() (chat.ChatMessages, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	usersMessages := make(chat.ChatMessages, len(s.chats))
-	for chatId, chat := range s.chats {
-		msgs, _ := chat.Conversation()
-		if len(msgs) > 0 {
-			usersMessages[chatId] = msgs
-		}
-	}
-	return usersMessages, nil
+	return removedMessages
 }
 
 func (s *storage) createChat(id, context string) error {
-	if s.chat(id) != nil {
-		return ErrChatAlreadyExists
+	if s.chatExists(id) {
+		return errChatAlreadyExists
 	}
 	s.chats[id] = chat.NewChat(context)
 	return nil
 }
 
-func (s *storage) chat(id string) *chat.Chat {
-	chat, ok := s.chats[id]
-	if !ok {
-		return nil
-	}
-	return chat
+func (s *storage) chatExists(id string) bool {
+	_, ok := s.chats[id]
+	return ok
 }
 
 func (s *storage) removeOutdatedChatMessages(c *chat.Chat) []chat.Message {
 	msgs := make([]chat.Message, 0, c.Size())
 	for {
 		msg, err := c.RemoveMessage(chat.MaxMessageTime)
-		if err == chat.ErrEmptyConversation || err == chat.ErrMessageUpToDate || err != nil {
+		if err != nil {
 			break
 		}
 		msgs = append(msgs, msg)
