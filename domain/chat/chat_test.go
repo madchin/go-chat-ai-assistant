@@ -61,33 +61,3 @@ func TestRemoveMessage(t *testing.T) {
 		}
 	}
 }
-
-var testConversation = []struct {
-	name        string
-	size        int
-	expectedErr error
-}{
-	{"Retrieve messages when conversation is empty", 0, ErrEmptyConversation},
-	{"Retrieve messages when conversation is full", MaxConversationSize, nil},
-	{"Retrieve messages when conversation have 2 messages", 2, nil},
-}
-
-func TestConversation(t *testing.T) {
-	for _, tc := range testConversation {
-		chat := NewChat("")
-		seededMsgs, err := seedMessages(tc.size)
-		if err != nil {
-			t.Fatalf("Test case: %s failed.\nCreating messages failed: %v", tc.name, err)
-		}
-		seedConversation(chat.conversation, seededMsgs)
-		msgs, err := chat.Conversation()
-		if !errors.Is(err, tc.expectedErr) {
-			t.Fatalf("Test case: %s failed.\nExpected error is not wrapped. expected: %v\n actual: %v", tc.name, tc.expectedErr, err)
-		}
-		for idx, msg := range msgs {
-			if msg != seededMsgs[idx] {
-				t.Fatalf("Test case: %s failed.\n Retrieved message is different than should be.\n expected: %v, actual: %v", tc.name, seededMsgs[idx], msg)
-			}
-		}
-	}
-}

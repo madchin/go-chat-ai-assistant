@@ -42,7 +42,7 @@ func TestAddingChatWithContext(t *testing.T) {
 
 		chat, ok := storage.chats[chatId]
 		if !ok {
-			t.Fatal("Test case with name: %s failed.\n Chat not exists", tc.name)
+			t.Fatalf("Test case with name: %s failed.\n Chat not exists", tc.name)
 		}
 		if chat.Context() != tc.context {
 			t.Fatalf("Test case with name: %s failed.\n Context is wrong. \n Expected: %s\n Actual: %s", tc.name, tc.context, chat.Context())
@@ -53,7 +53,7 @@ func TestAddingChatWithContext(t *testing.T) {
 func TestSendMessageToExistingChat(t *testing.T) {
 	chatId := "chatId"
 	storage := newStorageWithChat(chatId, "", t)
-	err := storage.SendMessage(chatId, chat.NewValidMessage())
+	err := storage.SendMessage(chatId, chat.NewMessage(chat.Customer, "somerandom", 123123))
 	if err != nil {
 		t.Fatalf("error occured during sending message. err: %v", err)
 	}
@@ -65,7 +65,7 @@ func TestSendMessageToExistingChat(t *testing.T) {
 func TestSendMessageToNotExistingChat(t *testing.T) {
 	chatId := "chatId"
 	storage := New()
-	msg := chat.NewValidMessage()
+	msg := chat.NewMessage(chat.Customer, "somerandom", 123123)
 	err := storage.SendMessage(chatId, msg)
 	if err != nil {
 		t.Fatalf("chat should be created upfront, but error occured: %v", err)
@@ -124,8 +124,8 @@ var testCasesRetrievingAllConversations = []struct {
 	{
 		"should retrieve all outdated and up to date messages from all chats",
 		[]chat.Message{
-			chat.NewValidMessageWithTimestamp(time.Now().UnixMilli()),
-			chat.NewValidMessageWithTimestamp(time.Now().UnixMilli() - chat.MaxMessageTime*2),
+			chat.NewMessage(chat.Customer, "somerandom", time.Now().UnixMilli()),
+			chat.NewMessage(chat.Customer, "alalalala", time.Now().UnixMilli()-chat.MaxMessageTime*2),
 		}, ChatsCapacity / 2,
 	},
 }
@@ -164,7 +164,7 @@ func seedChatWithMessages(storage *storage, chatId string, msgs []chat.Message) 
 func upToDateMessages(count int) []chat.Message {
 	msgs := make([]chat.Message, count)
 	for i := 0; i < count; i++ {
-		msg := chat.NewValidMessageWithTimestamp(time.Now().UnixMilli())
+		msg := chat.NewMessage(chat.Customer, "alalalala", time.Now().UnixMilli())
 		msgs[i] = msg
 	}
 	return msgs
@@ -173,29 +173,15 @@ func outdatedMessages(count int) []chat.Message {
 	msgs := make([]chat.Message, count)
 	outdatedTimestamp := time.Now().UnixMilli() - chat.MaxMessageTime*2
 	for i := 0; i < count; i++ {
-		msg := chat.NewValidMessageWithTimestamp(outdatedTimestamp)
+		msg := chat.NewMessage(chat.Customer, "alalalala", outdatedTimestamp)
 		msgs[i] = msg
 	}
 	return msgs
 }
 
 func allConversationsMessageCount(storage *storage) (count int) {
-	retrievedMsgs, _ := retrieveAllConversations(storage)
-	for _, msgs := range retrievedMsgs {
-		count += len(msgs)
+	for _, chat := range storage.chats {
+		count += chat.Size()
 	}
 	return
-}
-
-func retrieveAllConversations(s *storage) (chat.ChatMessages, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	usersMessages := make(chat.ChatMessages, len(s.chats))
-	for chatId, chat := range s.chats {
-		msgs, _ := chat.Conversation()
-		if len(msgs) > 0 {
-			usersMessages[chatId] = msgs
-		}
-	}
-	return usersMessages, nil
 }
