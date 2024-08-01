@@ -9,6 +9,6 @@ type Repository interface {
 }
 
 type HistoryRepository interface {
-	SaveHistory(ChatMessages)
+	SaveHistory(ChatMessages) error
 	RetrieveAllChatsHistory() (ChatMessages, error)
 }

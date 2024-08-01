@@ -2,6 +2,7 @@ package history
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -14,6 +15,10 @@ import (
 const (
 	firebase_write_delay = 1000
 	max_retries          = 5
+)
+
+var (
+	errSaveHistoryRetriesExceeded = errors.New("save history retries count has been exceeded")
 )
 
 type history struct {
@@ -48,10 +53,10 @@ func New(cfg *firebase.Config) *history {
 	return &history{client}
 }
 
-func (h *history) SaveHistory(chatMessages chat.ChatMessages) {
+func (h *history) SaveHistory(chatMessages chat.ChatMessages) error {
 	storageChats := mapDomainChatMessagesToStorageChats(chatMessages)
 	retries := 0
-	h.trySaveHistory(storageChats, retries)
+	return h.trySaveHistory(storageChats, retries)
 }
 
 func (h *history) RetrieveAllChatsHistory() (chat.ChatMessages, error) {
@@ -74,9 +79,9 @@ func (h *history) RetrieveAllChatsHistory() (chat.ChatMessages, error) {
 	// }
 }
 
-func (h *history) trySaveHistory(chatHistories chats, retries int) {
+func (h *history) trySaveHistory(chatHistories chats, retries int) error {
 	if retries >= max_retries {
-		return
+		return errSaveHistoryRetriesExceeded
 	}
 	retries++
 	unsaved := make(chats, len(chatHistories))
@@ -91,8 +96,9 @@ func (h *history) trySaveHistory(chatHistories chats, retries int) {
 	if len(unsaved) > 0 {
 		<-time.After(time.Duration(time.Millisecond * firebase_write_delay))
 		log.Println("retrying")
-		h.trySaveHistory(unsaved, retries)
+		return h.trySaveHistory(unsaved, retries)
 	}
+	return nil
 }
 
 func (h *history) addMessages(chatId string, messages messages) error {
