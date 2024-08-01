@@ -7,13 +7,13 @@ type historyService struct {
 }
 
 type historyRetriever interface {
-	RetrieveAllChatsHistory() (chat.ChatMessages, error)
+	RetrieveAllChatsHistory(partialResponseCh chan<- chat.ChatMessages) error
 }
 
 func NewHistoryService(historyRetriever historyRetriever) historyService {
 	return historyService{historyRetriever}
 }
 
-func (h *historyService) RetrieveAllChatsHistory() (chat.ChatMessages, error) {
-	return h.history.RetrieveAllChatsHistory()
+func (h *historyService) RetrieveAllChatsHistory(partialResponseCh chan<- chat.ChatMessages) error {
+	return h.history.RetrieveAllChatsHistory(partialResponseCh)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -46,11 +45,11 @@ func New(cfg *firebase.Config) *history {
 	ctx := context.Background()
 	app, err := firebase.NewApp(ctx, cfg)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 	client, err := app.Firestore(ctx)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 	return &history{client}
 }
@@ -61,26 +60,29 @@ func (h *history) SaveHistory(chatMessages chat.ChatMessages) error {
 	return h.trySaveHistory(storageChats, retries)
 }
 
-func (h *history) RetrieveAllChatsHistory() (chat.ChatMessages, error) {
+func (h *history) RetrieveAllChatsHistory(responseCh chan<- chat.ChatMessages) error {
 	chatsCollection := h.chatCollection()
 	iter := chatsCollection.Documents(context.Background())
 	defer iter.Stop()
-	chatMessages := make(chat.ChatMessages, 100)
 	for {
+		chatMessages := make(chat.ChatMessages, 1)
 		doc, err := iter.Next()
 		if err == iterator.Done {
-			return chatMessages, nil
+			break
 		}
 		if err != nil {
-			return chatMessages, err
+			return err
 		}
 		var messages messages
 		err = doc.DataTo(&messages)
 		if err != nil {
-			return chatMessages, err
+			return err
 		}
 		chatMessages[doc.Ref.ID] = mapStorageMessagesToDomainMessages(messages)
+		responseCh <- chatMessages
 	}
+	close(responseCh)
+	return nil
 }
 
 func (h *history) trySaveHistory(chatHistories chats, retries int) error {

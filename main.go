@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"io"
 
 	firebase "firebase.google.com/go"
 	"github.com/madchin/go-chat-ai-assistant/adapters/ai_model/gemini"
@@ -34,12 +35,21 @@ func main() {
 		panic(err)
 	}
 	grpcClient := grpc_server.NewChatClient(conn)
-	resp, err := grpcClient.RetrieveHistory(context.Background(), &grpc_server.HistoryRetrieveRequest{})
-
+	resp, err := grpcClient.RetrieveHistory(context.Background(), nil)
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("in main %v", resp)
+	for {
+		response, err := resp.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("%v", response)
+	}
+
 	// resp, err := grpcClient.CreateChat(context.Background(), &grpc_server.ChatRequest{})
 	// if err != nil {
 	// 	panic(err)

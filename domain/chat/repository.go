@@ -10,5 +10,5 @@ type Repository interface {
 
 type HistoryRepository interface {
 	SaveHistory(ChatMessages) error
-	RetrieveAllChatsHistory() (ChatMessages, error)
+	RetrieveAllChatsHistory(responseCh chan<- ChatMessages) error
 }

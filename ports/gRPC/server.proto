@@ -8,7 +8,7 @@ service Chat {
     rpc CreateChat (ChatRequest) returns (ChatResponse) {}
     rpc SendMessage (MessageRequest) returns (MessageResponse) {}
     rpc SendMessageStream (MessageRequest) returns (stream MessageResponse) {}
-    rpc RetrieveHistory (HistoryRetrieveRequest) returns (HistoryRetrieveResponse) {}
+    rpc RetrieveHistory (HistoryRetrieveRequest) returns (stream HistoryRetrieveResponse) {}
 }
 
 message ChatRequest {}

@@ -40,14 +40,28 @@ func RegisterGrpcServer(chatService ports.ChatService, historyService ports.Hist
 
 func (g *GrpcServer) mustEmbedUnimplementedChatServer() {}
 
-func (g *GrpcServer) RetrieveHistory(ctx context.Context, _ *HistoryRetrieveRequest) (*HistoryRetrieveResponse, error) {
-	history, err := g.historyService.RetrieveAllChatsHistory()
+func (g *GrpcServer) RetrieveHistory(_ *HistoryRetrieveRequest, stream Chat_RetrieveHistoryServer) error {
+	errCh := make(chan error)
+	partialResponseCh := make(chan chat.ChatMessages)
+	go streamRetrieveHistoryPartialContent(partialResponseCh, errCh, stream)
+	err := g.historyService.RetrieveAllChatsHistory(partialResponseCh)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	resp := mapDomainChatMessagesToHistoryResponse(history)
-	return resp, nil
+	if err = <-errCh; err != nil {
+		return err
+	}
+	return nil
 }
+
+// func (g *GrpcServer) RetrieveHistory(ctx context.Context, _ *HistoryRetrieveRequest) (*HistoryRetrieveResponse, error) {
+// 	history, err := g.historyService.RetrieveAllChatsHistory()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	resp := mapDomainChatMessagesToHistoryResponse(history)
+// 	return resp, nil
+// }
 
 func (g *GrpcServer) CreateChat(ctx context.Context, chat *ChatRequest) (*ChatResponse, error) {
 	chatId := uuid.NewString()
@@ -55,6 +69,7 @@ func (g *GrpcServer) CreateChat(ctx context.Context, chat *ChatRequest) (*ChatRe
 	if err != nil {
 		return &ChatResponse{}, err
 	}
+
 	return &ChatResponse{ChatId: chatId}, nil
 }
 
@@ -81,7 +96,7 @@ func (g *GrpcServer) SendMessageStream(msg *MessageRequest, stream Chat_SendMess
 	}
 	assistantResponseCh := make(chan string)
 	errCh := make(chan error)
-	go streamResponsePart(assistantResponseCh, errCh, stream)
+	go streamSendMessagePartialContent(assistantResponseCh, errCh, stream)
 	err = g.chatService.SendMessageStream(assistantResponseCh, chatId, customerMsg)
 	if err != nil {
 		return err
@@ -89,10 +104,11 @@ func (g *GrpcServer) SendMessageStream(msg *MessageRequest, stream Chat_SendMess
 	if err = <-errCh; err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func streamResponsePart(partialResponseCh <-chan string, errCh chan<- error, stream Chat_SendMessageStreamServer) {
+func streamSendMessagePartialContent(partialResponseCh <-chan string, errCh chan<- error, stream Chat_SendMessageStreamServer) {
 	for {
 		responsePart, waitForNextPart := <-partialResponseCh
 		if !waitForNextPart {
@@ -100,6 +116,21 @@ func streamResponsePart(partialResponseCh <-chan string, errCh chan<- error, str
 			return
 		}
 		if err := stream.Send(&MessageResponse{Author: chat.Assistant.Role(), Content: responsePart}); err != nil {
+			errCh <- err
+			close(errCh)
+			return
+		}
+	}
+}
+
+func streamRetrieveHistoryPartialContent(partialResponseCh <-chan chat.ChatMessages, errCh chan<- error, stream Chat_RetrieveHistoryServer) {
+	for {
+		responsePart, waitForNextPart := <-partialResponseCh
+		if !waitForNextPart {
+			errCh <- nil
+			return
+		}
+		if err := stream.Send(mapDomainChatMessagesToHistoryResponse(responsePart)); err != nil {
 			errCh <- err
 			close(errCh)
 			return

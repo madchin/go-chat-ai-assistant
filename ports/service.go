@@ -11,5 +11,5 @@ type ChatService interface {
 }
 
 type HistoryRetrieverService interface {
-	RetrieveAllChatsHistory() (chat.ChatMessages, error)
+	RetrieveAllChatsHistory(partialResponseCh chan<- chat.ChatMessages) error
 }
