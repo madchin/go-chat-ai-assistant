@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/vertexai/genai"
-	inmemory_storage "github.com/madchin/go-chat-ai-assistant/adapters/repository/in_memory"
+	"github.com/madchin/go-chat-ai-assistant/adapters/repository/cache"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 	"google.golang.org/api/iterator"
 )
@@ -25,13 +25,13 @@ type Model struct {
 }
 
 func NewModel(model, projectId, location string) Model {
-	return Model{model, projectId, location, make(map[string]*connection, inmemory_storage.ChatsCapacity)}
+	return Model{model, projectId, location, make(map[string]*connection, cache.ChatsCapacity)}
 }
 
 func (g Model) SendMessageStream(responseCh chan<- string, content, chatId string) (msg chat.Message, err error) {
 	ctx := context.Background()
 	client, err := g.createClientConnection(ctx, chatId)
-	if err != nil {
+	if err != errChatConnectionAlreadyEstablished && err != nil {
 		err = errClientGeneration
 		return
 	}
@@ -71,7 +71,7 @@ func (g Model) SendMessageStream(responseCh chan<- string, content, chatId strin
 func (g Model) SendMessage(content, chatId string) (msg chat.Message, err error) {
 	ctx := context.Background()
 	client, err := g.createClientConnection(ctx, chatId)
-	if err != nil {
+	if err != errChatConnectionAlreadyEstablished && err != nil {
 		err = errClientGeneration
 		return
 	}

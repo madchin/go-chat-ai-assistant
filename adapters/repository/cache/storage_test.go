@@ -1,4 +1,4 @@
-package inmemory_storage
+package cache
 
 import (
 	"fmt"
@@ -64,8 +64,11 @@ func TestSendMessageToNotExistingChat(t *testing.T) {
 	storage := New()
 	msg := chat.NewValidMessage()
 	err := storage.SendMessage(chatId, msg)
-	if err != errChatNotExists {
-		t.Fatalf("unexpected error occured\n Expected %v \n Actual: %v", errChatNotExists, err)
+	if err != nil {
+		t.Fatalf("chat should be created upfront, but error occured: %v", err)
+	}
+	if storage.chats[chatId].Size() != 1 {
+		t.Fatalf("message has not been sent. actual conversation size: %d, expected: %d", storage.chats[chatId].Size(), 1)
 	}
 }
 
@@ -140,7 +143,7 @@ func TestRetrievingAllConversations(t *testing.T) {
 	}
 }
 
-func newStorageWithChat(chatId, context string, t *testing.T) *Storage {
+func newStorageWithChat(chatId, context string, t *testing.T) *storage {
 	storage := New()
 	err := storage.CreateChat(chatId, context)
 	if err != nil {
@@ -149,7 +152,7 @@ func newStorageWithChat(chatId, context string, t *testing.T) *Storage {
 	return storage
 }
 
-func seedChatWithMessages(storage *Storage, chatId string, msgs []chat.Message) {
+func seedChatWithMessages(storage *storage, chatId string, msgs []chat.Message) {
 	for _, msg := range msgs {
 		storage.SendMessage(chatId, msg)
 	}
@@ -173,7 +176,7 @@ func outdatedMessages(count int) []chat.Message {
 	return msgs
 }
 
-func allConversationsMessageCount(storage *Storage) (count int) {
+func allConversationsMessageCount(storage *storage) (count int) {
 	retrievedMsgs, _ := storage.RetrieveAllConversations()
 	for _, msgs := range retrievedMsgs {
 		count += len(msgs)

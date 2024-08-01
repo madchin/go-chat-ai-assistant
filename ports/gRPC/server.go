@@ -13,11 +13,12 @@ import (
 )
 
 type GrpcServer struct {
-	service ports.ChatService
+	chatService    ports.ChatService
+	historyService ports.HistoryRetrieverService
 }
 
-func RegisterGrpcServer(service ports.ChatService, host string, port int) {
-	chatServer := &GrpcServer{service}
+func RegisterGrpcServer(chatService ports.ChatService, historyService ports.HistoryRetrieverService, host string, port int) {
+	chatServer := &GrpcServer{chatService, historyService}
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		panic(err.Error())
@@ -39,12 +40,36 @@ func RegisterGrpcServer(service ports.ChatService, host string, port int) {
 
 func (g *GrpcServer) mustEmbedUnimplementedChatServer() {}
 
+func (g *GrpcServer) RetrieveHistory(_ *HistoryRetrieveRequest, stream Chat_RetrieveHistoryServer) error {
+	errCh := make(chan error)
+	partialResponseCh := make(chan chat.ChatMessages)
+	go streamRetrieveHistoryPartialContent(partialResponseCh, errCh, stream)
+	err := g.historyService.RetrieveAllChatsHistory(partialResponseCh)
+	if err != nil {
+		return err
+	}
+	if err = <-errCh; err != nil {
+		return err
+	}
+	return nil
+}
+
+// func (g *GrpcServer) RetrieveHistory(ctx context.Context, _ *HistoryRetrieveRequest) (*HistoryRetrieveResponse, error) {
+// 	history, err := g.historyService.RetrieveAllChatsHistory()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	resp := mapDomainChatMessagesToHistoryResponse(history)
+// 	return resp, nil
+// }
+
 func (g *GrpcServer) CreateChat(ctx context.Context, chat *ChatRequest) (*ChatResponse, error) {
 	chatId := uuid.NewString()
-	err := g.service.CreateChat(chatId, "")
+	err := g.chatService.CreateChat(chatId, "")
 	if err != nil {
 		return &ChatResponse{}, err
 	}
+
 	return &ChatResponse{ChatId: chatId}, nil
 }
 
@@ -55,7 +80,7 @@ func (g *GrpcServer) SendMessage(ctx context.Context, msg *MessageRequest) (*Mes
 	if err != nil {
 		return &MessageResponse{}, err
 	}
-	response, err := g.service.SendMessage(chatId, customerMsg)
+	response, err := g.chatService.SendMessage(chatId, customerMsg)
 	if err != nil {
 		return &MessageResponse{}, err
 	}
@@ -71,18 +96,19 @@ func (g *GrpcServer) SendMessageStream(msg *MessageRequest, stream Chat_SendMess
 	}
 	assistantResponseCh := make(chan string)
 	errCh := make(chan error)
-	go streamResponsePart(assistantResponseCh, errCh, stream)
-	err = g.service.SendMessageStream(assistantResponseCh, chatId, customerMsg)
+	go streamSendMessagePartialContent(assistantResponseCh, errCh, stream)
+	err = g.chatService.SendMessageStream(assistantResponseCh, chatId, customerMsg)
 	if err != nil {
 		return err
 	}
 	if err = <-errCh; err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func streamResponsePart(partialResponseCh <-chan string, errCh chan<- error, stream Chat_SendMessageStreamServer) {
+func streamSendMessagePartialContent(partialResponseCh <-chan string, errCh chan<- error, stream Chat_SendMessageStreamServer) {
 	for {
 		responsePart, waitForNextPart := <-partialResponseCh
 		if !waitForNextPart {
@@ -95,5 +121,35 @@ func streamResponsePart(partialResponseCh <-chan string, errCh chan<- error, str
 			return
 		}
 	}
+}
 
+func streamRetrieveHistoryPartialContent(partialResponseCh <-chan chat.ChatMessages, errCh chan<- error, stream Chat_RetrieveHistoryServer) {
+	for {
+		responsePart, waitForNextPart := <-partialResponseCh
+		if !waitForNextPart {
+			errCh <- nil
+			return
+		}
+		if err := stream.Send(mapDomainChatMessagesToHistoryResponse(responsePart)); err != nil {
+			errCh <- err
+			close(errCh)
+			return
+		}
+	}
+
+}
+
+func mapDomainChatMessagesToHistoryResponse(domainChatMessages chat.ChatMessages) *HistoryRetrieveResponse {
+	chatHistory := make([]*HistoryRetrieveResponseChat, 0, len(domainChatMessages))
+	for chatId, domainMessages := range domainChatMessages {
+		messages := make([]*HistoryRetrieveResponseChatMsg, len(domainMessages))
+		for i := 0; i < len(domainMessages); i++ {
+			author, content, timestamp := domainMessages[i].Author().Role(), domainMessages[i].Content(), domainMessages[i].Timestamp()
+			message := &HistoryRetrieveResponseChatMsg{Author: author, Content: content, Timestamp: timestamp}
+			messages[i] = message
+		}
+		chatMessages := &HistoryRetrieveResponseChat{ChatId: chatId, Messages: messages}
+		chatHistory = append(chatHistory, chatMessages)
+	}
+	return &HistoryRetrieveResponse{Chats: chatHistory}
 }
