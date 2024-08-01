@@ -8,6 +8,7 @@ service Chat {
     rpc CreateChat (ChatRequest) returns (ChatResponse) {}
     rpc SendMessage (MessageRequest) returns (MessageResponse) {}
     rpc SendMessageStream (MessageRequest) returns (stream MessageResponse) {}
+    rpc RetrieveHistory (HistoryRetrieveRequest) returns (HistoryRetrieveResponse) {}
 }
 
 message ChatRequest {}
@@ -24,4 +25,19 @@ message MessageRequest {
 message MessageResponse {
     string author = 1;
     string content = 2;
+}
+
+message HistoryRetrieveRequest {}
+
+message HistoryRetrieveResponse {
+    message chat {
+        string chatId = 1;
+        message msg {
+            string author = 2;
+            string content = 3;
+            int64 timestamp = 4;
+        }
+        repeated msg messages = 5;
+    }
+    repeated chat chats = 6;
 }

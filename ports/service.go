@@ -9,3 +9,7 @@ type ChatService interface {
 	SendMessage(chatId string, msg chat.Message) (chat.Message, error)
 	SendMessageStream(responseCh chan<- string, chatId string, msg chat.Message) error
 }
+
+type HistoryRetrieverService interface {
+	RetrieveAllChatsHistory() (chat.ChatMessages, error)
+}
