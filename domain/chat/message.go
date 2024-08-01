@@ -22,6 +22,10 @@ type Message struct {
 	timestamp int64
 }
 
+func NewMessage(author Participant, content string, timestamp int64) Message {
+	return Message{author, content, timestamp}
+}
+
 func NewCustomerMessage(content string) (Message, error) {
 	msg := Message{Customer, content, time.Now().UnixMilli()}
 	if msg.author == Customer {

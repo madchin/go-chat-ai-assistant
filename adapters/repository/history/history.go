@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
+	"google.golang.org/api/iterator"
 )
 
 const (
@@ -60,23 +62,25 @@ func (h *history) SaveHistory(chatMessages chat.ChatMessages) error {
 }
 
 func (h *history) RetrieveAllChatsHistory() (chat.ChatMessages, error) {
-	return chat.ChatMessages{}, nil
-	// chats := h.chatCollection()
-	// retrieved := make(chat.ChatMessages, 100)
-	// iter := chats.Documents(context.Background())
-	// for {
-	// 	doc, err := iter.Next()
-	// 	if err == iterator.Done {
-	// 		return retrieved, nil
-	// 	}
-	// 	if err != nil {
-	// 		return retrieved, err
-	// 	}
-	// 	err = doc.DataTo(&retrieved)
-	// 	if err != nil {
-	// 		return retrieved, err
-	// 	}
-	// }
+	chatsCollection := h.chatCollection()
+	iter := chatsCollection.Documents(context.Background())
+	defer iter.Stop()
+	chatMessages := make(chat.ChatMessages, 100)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			return chatMessages, nil
+		}
+		if err != nil {
+			return chatMessages, err
+		}
+		var messages messages
+		err = doc.DataTo(&messages)
+		if err != nil {
+			return chatMessages, err
+		}
+		chatMessages[doc.Ref.ID] = mapStorageMessagesToDomainMessages(messages)
+	}
 }
 
 func (h *history) trySaveHistory(chatHistories chats, retries int) error {
@@ -86,16 +90,13 @@ func (h *history) trySaveHistory(chatHistories chats, retries int) error {
 	retries++
 	unsaved := make(chats, len(chatHistories))
 	for chatId, messages := range chatHistories {
-		log.Printf("trying to save messages: %v\n", messages)
 		err := h.addMessages(chatId, messages)
 		if err != nil {
-			log.Printf("failed to save messages: %v\n", err)
 			unsaved[chatId] = chatHistories[chatId]
 		}
 	}
 	if len(unsaved) > 0 {
 		<-time.After(time.Duration(time.Millisecond * firebase_write_delay))
-		log.Println("retrying")
 		return h.trySaveHistory(unsaved, retries)
 	}
 	return nil
@@ -112,6 +113,13 @@ func (h *history) chatCollection() *firestore.CollectionRef {
 	return h.client.Collection("chats")
 }
 
+func (m Message) AuthorParticipant() chat.Participant {
+	if m.Author == chat.Assistant.Role() {
+		return chat.Assistant
+	}
+	return chat.Customer
+}
+
 func mapDomainChatMessagesToStorageChats(domainChatMessages chat.ChatMessages) chats {
 	chats := make(chats, len(domainChatMessages))
 	for chatId, domainMessages := range domainChatMessages {
@@ -123,4 +131,16 @@ func mapDomainChatMessagesToStorageChats(domainChatMessages chat.ChatMessages) c
 		chats[chatId] = storageMessages
 	}
 	return chats
+}
+
+func mapStorageMessagesToDomainMessages(storageMessages messages) []chat.Message {
+	chatMessages := make([]chat.Message, 0, len(storageMessages))
+	for timestamp, storageMessage := range storageMessages {
+		parsedTimestamp, err := strconv.ParseInt(timestamp, 10, 64)
+		if err != nil {
+			parsedTimestamp = 0
+		}
+		chatMessages = append(chatMessages, chat.NewMessage(storageMessage.AuthorParticipant(), storageMessage.Content, parsedTimestamp))
+	}
+	return chatMessages
 }
