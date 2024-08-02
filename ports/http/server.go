@@ -9,18 +9,31 @@ import (
 	service "github.com/madchin/go-chat-ai-assistant/services"
 )
 
+type route struct {
+	r string
+}
+
+var (
+	chatSend   = route{"/chat/send"}
+	chatCreate = route{"/chat/create"}
+)
+
 type HttpServer struct {
 	chatService *service.ChatService
 	router      *httprouter.Router
 }
 
-func Register(chatService *service.ChatService) {
+func (h *HttpServer) registerRoutes() {
+	h.router.POST(chatSend.r, h.sendMessageHandler)
+	h.router.POST(chatCreate.r, h.createChatHandler)
+}
+
+func Register(chatService *service.ChatService, host string) {
 	server := &HttpServer{chatService, httprouter.New()}
-	server.router.POST("/chat/send", server.sendMessageHandler)
-	server.router.POST("/chat/create", server.createChatHandler)
 	server.router.PanicHandler = crashHandler
+	server.registerRoutes()
 	go func() {
-		err := http.ListenAndServe(":8080", registerMiddlewares(server.router))
+		err := http.ListenAndServeTLS(host, "./cert/serv.cert", "./cert/priv.key", registerMiddlewares(server.router))
 		if err != nil {
 			panic(err.Error())
 		}
@@ -31,7 +44,7 @@ func (h *HttpServer) createChatHandler(w http.ResponseWriter, r *http.Request, _
 	chatId := uuid.NewString()
 	err := h.chatService.CreateChat(chatId, "")
 	if err != nil {
-		badRequest(w, "server", err.Error())
+		badRequest(w, serverCodeError.c, err.Error())
 		return
 	}
 	setChatIdCookie(w, chatId)
@@ -42,22 +55,22 @@ func (h *HttpServer) sendMessageHandler(w http.ResponseWriter, r *http.Request, 
 	var customerMessage IncomingMessage
 	err := json.NewDecoder(r.Body).Decode(&customerMessage)
 	if err != nil {
-		badRequest(w, "client", "JSON parse failed")
+		badRequest(w, clientCodeError.c, "JSON parse failed")
 		return
 	}
 	chatIdCookie, err := r.Cookie("chatId")
 	if err != nil || !isValidUUID(chatIdCookie.Value) {
-		badRequest(w, "client", err.Error())
+		badRequest(w, clientCodeError.c, err.Error())
 		return
 	}
 	customerDomainMsg, err := customerMessage.toDomainMessage()
 	if err != nil {
-		badRequest(w, "client", err.Error())
+		badRequest(w, clientCodeError.c, err.Error())
 		return
 	}
 	msg, err := h.chatService.SendMessage(chatIdCookie.Value, customerDomainMsg)
 	if err != nil {
-		badRequest(w, "client", err.Error())
+		badRequest(w, clientCodeError.c, err.Error())
 		return
 	}
 

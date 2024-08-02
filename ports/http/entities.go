@@ -16,6 +16,15 @@ type HttpError struct {
 	Description string `json:"description"`
 }
 
+type codeErrors struct {
+	c string
+}
+
+var (
+	serverCodeError = codeErrors{"server"}
+	clientCodeError = codeErrors{"client"}
+)
+
 func (i IncomingMessage) toDomainMessage() (chat.Message, error) {
 	msg, err := chat.NewCustomerMessage(i.Content)
 	if err != nil {
