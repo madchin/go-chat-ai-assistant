@@ -25,7 +25,7 @@ func main() {
 	storage := cache.New()
 	model := assistant.NewGemini("gemini-1.5-flash-001", "", "us-central1")
 	application := service.NewApplication(storage, history, model.Connections, model)
-	http_server.Register(application.Service.Chat)
+	http_server.Register(application.Service.Chat, "127.0.0.1")
 	grpc_server.Register(application.Service.Chat, application.Service.History, "127.0.0.1", 8081)
 	creds, err := credentials.NewClientTLSFromFile("cert/serv.cert", "chat.grpc-server.com")
 	if err != nil {
