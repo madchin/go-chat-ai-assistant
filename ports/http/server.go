@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/julienschmidt/httprouter"
-	service "github.com/madchin/go-chat-ai-assistant/services"
+	"github.com/madchin/go-chat-ai-assistant/ports"
 )
 
 type route struct {
@@ -19,7 +19,7 @@ var (
 )
 
 type HttpServer struct {
-	chatService *service.ChatService
+	chatService ports.ChatService
 	router      *httprouter.Router
 }
 
@@ -28,7 +28,7 @@ func (h *HttpServer) registerRoutes() {
 	h.router.POST(chatCreate.r, h.createChatHandler)
 }
 
-func Register(chatService *service.ChatService, host string) {
+func Register(chatService ports.ChatService, host string) {
 	server := &HttpServer{chatService, httprouter.New()}
 	server.router.PanicHandler = crashHandler
 	server.registerRoutes()
@@ -47,12 +47,16 @@ func (h *HttpServer) createChatHandler(w http.ResponseWriter, r *http.Request, _
 		badRequest(w, serverCodeError.c, err.Error())
 		return
 	}
-	setChatIdCookie(w, chatId)
+	cookie := chatIdCookie(chatId)
+	http.SetCookie(w, cookie)
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *HttpServer) sendMessageHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var customerMessage IncomingMessage
+	if r.Header.Get("Content-Type") != "application/json" {
+		badRequest(w, clientCodeError.c, "Content-Type header need to be application/json")
+	}
+	var customerMessage CustomerMessage
 	err := json.NewDecoder(r.Body).Decode(&customerMessage)
 	if err != nil {
 		badRequest(w, clientCodeError.c, "JSON parse failed")
@@ -74,7 +78,7 @@ func (h *HttpServer) sendMessageHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	assistantMessage := mapDomainMessageToOutcomingMessage(msg)
+	assistantMessage := mapDomainMessageToHttpAssistantMessage(msg)
 	err = json.NewEncoder(w).Encode(&assistantMessage)
 	if err != nil {
 		internal(w)
@@ -94,8 +98,8 @@ func internal(w http.ResponseWriter) {
 	_ = json.NewEncoder(w).Encode(&httpErr)
 }
 
-func setChatIdCookie(w http.ResponseWriter, chatId string) *http.Cookie {
-	cookie := &http.Cookie{
+func chatIdCookie(chatId string) *http.Cookie {
+	return &http.Cookie{
 		Name:     "chatId",
 		Value:    chatId,
 		Path:     "/chat",
@@ -104,8 +108,6 @@ func setChatIdCookie(w http.ResponseWriter, chatId string) *http.Cookie {
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	}
-	http.SetCookie(w, cookie)
-	return cookie
 }
 
 func isValidUUID(uid string) bool {

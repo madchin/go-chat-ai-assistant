@@ -2,11 +2,11 @@ package http_server
 
 import "github.com/madchin/go-chat-ai-assistant/domain/chat"
 
-type IncomingMessage struct {
+type CustomerMessage struct {
 	Content string `json:"content"`
 }
 
-type OutcomingMessage struct {
+type AssistantMessage struct {
 	Author  string `json:"author"`
 	Content string `json:"content"`
 }
@@ -25,7 +25,7 @@ var (
 	clientCodeError = codeErrors{"client"}
 )
 
-func (i IncomingMessage) toDomainMessage() (chat.Message, error) {
+func (i CustomerMessage) toDomainMessage() (chat.Message, error) {
 	msg, err := chat.NewCustomerMessage(i.Content)
 	if err != nil {
 		return chat.Message{}, err
@@ -33,6 +33,6 @@ func (i IncomingMessage) toDomainMessage() (chat.Message, error) {
 	return msg, nil
 }
 
-func mapDomainMessageToOutcomingMessage(domainMsg chat.Message) OutcomingMessage {
-	return OutcomingMessage{Author: domainMsg.Author().Role(), Content: domainMsg.Content()}
+func mapDomainMessageToHttpAssistantMessage(domainMsg chat.Message) AssistantMessage {
+	return AssistantMessage{Author: domainMsg.Author().Role(), Content: domainMsg.Content()}
 }
