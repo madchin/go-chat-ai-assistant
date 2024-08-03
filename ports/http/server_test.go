@@ -8,27 +8,24 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
-	mock_chat_repository "github.com/madchin/go-chat-ai-assistant/mocks/adapters/repository/cache"
-	mock_history "github.com/madchin/go-chat-ai-assistant/mocks/adapters/repository/history"
-	mock_service "github.com/madchin/go-chat-ai-assistant/mocks/services"
-	service "github.com/madchin/go-chat-ai-assistant/services"
+	mock_chat_service "github.com/madchin/go-chat-ai-assistant/mocks/ports/chat"
+	mock_history_service "github.com/madchin/go-chat-ai-assistant/mocks/ports/history"
 	"go.uber.org/mock/gomock"
 )
 
 type mocks struct {
-	ctrl             *gomock.Controller
-	assistantService *mock_service.MockassistantService
-	chatRepository   *mock_chat_repository.MockRepository
-	chatHistory      *mock_history.MockHistoryRepository
+	ctrl           *gomock.Controller
+	chatService    *mock_chat_service.MockChatService
+	historyService *mock_history_service.MockHistoryService
 }
 
 func TestCreateChat(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
 		mocks := setupMocks(t)
-		server := setupHttpServer(mocks)
+		server := &HttpServer{mocks.chatService, httprouter.New()}
 		incomingReq, resWriter := httptest.NewRequest("POST", chatCreate.r, nil), httptest.NewRecorder()
 
-		mocks.chatRepository.EXPECT().CreateChat(gomock.Any(), gomock.Any())
+		mocks.chatService.EXPECT().CreateChat(gomock.Any(), gomock.Any())
 		server.createChatHandler(resWriter, incomingReq, nil)
 
 		result := resWriter.Result()
@@ -48,10 +45,10 @@ func TestCreateChat(t *testing.T) {
 		const chatCreationError = "error"
 
 		mocks := setupMocks(t)
-		server := setupHttpServer(mocks)
+		server := &HttpServer{mocks.chatService, httprouter.New()}
 		incomingReq, resWriter := httptest.NewRequest("POST", chatCreate.r, nil), httptest.NewRecorder()
 
-		mocks.chatRepository.EXPECT().CreateChat(gomock.Any(), gomock.Any()).Return(errors.New(chatCreationError))
+		mocks.chatService.EXPECT().CreateChat(gomock.Any(), gomock.Any()).Return(errors.New(chatCreationError))
 		server.createChatHandler(resWriter, incomingReq, nil)
 
 		result := resWriter.Result()
@@ -78,14 +75,8 @@ func TestCreateChat(t *testing.T) {
 func setupMocks(t *testing.T) *mocks {
 	ctrl := gomock.NewController(t)
 	return &mocks{
-		ctrl:             ctrl,
-		assistantService: mock_service.NewMockassistantService(ctrl),
-		chatRepository:   mock_chat_repository.NewMockRepository(ctrl),
-		chatHistory:      mock_history.NewMockHistoryRepository(ctrl),
+		ctrl:           ctrl,
+		chatService:    mock_chat_service.NewMockChatService(ctrl),
+		historyService: mock_history_service.NewMockHistoryService(ctrl),
 	}
-}
-
-func setupHttpServer(mocks *mocks) *HttpServer {
-	chatService := service.NewChatService(mocks.assistantService, mocks.chatRepository)
-	return &HttpServer{chatService, httprouter.New()}
 }

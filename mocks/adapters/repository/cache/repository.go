@@ -39,6 +39,20 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 	return m.recorder
 }
 
+// AddMessage mocks base method.
+func (m *MockRepository) AddMessage(chatId string, msg chat.Message) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddMessage", chatId, msg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddMessage indicates an expected call of AddMessage.
+func (mr *MockRepositoryMockRecorder) AddMessage(chatId, msg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMessage", reflect.TypeOf((*MockRepository)(nil).AddMessage), chatId, msg)
+}
+
 // CreateChat mocks base method.
 func (m *MockRepository) CreateChat(id, context string) error {
 	m.ctrl.T.Helper()
@@ -51,18 +65,4 @@ func (m *MockRepository) CreateChat(id, context string) error {
 func (mr *MockRepositoryMockRecorder) CreateChat(id, context any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateChat", reflect.TypeOf((*MockRepository)(nil).CreateChat), id, context)
-}
-
-// SendMessage mocks base method.
-func (m *MockRepository) SendMessage(chatId string, msg chat.Message) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessage", chatId, msg)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SendMessage indicates an expected call of SendMessage.
-func (mr *MockRepositoryMockRecorder) SendMessage(chatId, msg any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockRepository)(nil).SendMessage), chatId, msg)
 }

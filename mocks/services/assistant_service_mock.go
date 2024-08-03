@@ -16,55 +16,55 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockassistantService is a mock of assistantService interface.
-type MockassistantService struct {
+// MockAssistantService is a mock of AssistantService interface.
+type MockAssistantService struct {
 	ctrl     *gomock.Controller
-	recorder *MockassistantServiceMockRecorder
+	recorder *MockAssistantServiceMockRecorder
 }
 
-// MockassistantServiceMockRecorder is the mock recorder for MockassistantService.
-type MockassistantServiceMockRecorder struct {
-	mock *MockassistantService
+// MockAssistantServiceMockRecorder is the mock recorder for MockAssistantService.
+type MockAssistantServiceMockRecorder struct {
+	mock *MockAssistantService
 }
 
-// NewMockassistantService creates a new mock instance.
-func NewMockassistantService(ctrl *gomock.Controller) *MockassistantService {
-	mock := &MockassistantService{ctrl: ctrl}
-	mock.recorder = &MockassistantServiceMockRecorder{mock}
+// NewMockAssistantService creates a new mock instance.
+func NewMockAssistantService(ctrl *gomock.Controller) *MockAssistantService {
+	mock := &MockAssistantService{ctrl: ctrl}
+	mock.recorder = &MockAssistantServiceMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockassistantService) EXPECT() *MockassistantServiceMockRecorder {
+func (m *MockAssistantService) EXPECT() *MockAssistantServiceMockRecorder {
 	return m.recorder
 }
 
-// SendMessage mocks base method.
-func (m *MockassistantService) SendMessage(content, chatId string) (chat.Message, error) {
+// Ask mocks base method.
+func (m *MockAssistantService) Ask(content, chatId string) (chat.Message, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessage", content, chatId)
+	ret := m.ctrl.Call(m, "Ask", content, chatId)
 	ret0, _ := ret[0].(chat.Message)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SendMessage indicates an expected call of SendMessage.
-func (mr *MockassistantServiceMockRecorder) SendMessage(content, chatId any) *gomock.Call {
+// Ask indicates an expected call of Ask.
+func (mr *MockAssistantServiceMockRecorder) Ask(content, chatId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockassistantService)(nil).SendMessage), content, chatId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ask", reflect.TypeOf((*MockAssistantService)(nil).Ask), content, chatId)
 }
 
-// SendMessageStream mocks base method.
-func (m *MockassistantService) SendMessageStream(response chan<- string, content, chatId string) (chat.Message, error) {
+// AskStream mocks base method.
+func (m *MockAssistantService) AskStream(response chan<- string, content, chatId string) (chat.Message, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessageStream", response, content, chatId)
+	ret := m.ctrl.Call(m, "AskStream", response, content, chatId)
 	ret0, _ := ret[0].(chat.Message)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// SendMessageStream indicates an expected call of SendMessageStream.
-func (mr *MockassistantServiceMockRecorder) SendMessageStream(response, content, chatId any) *gomock.Call {
+// AskStream indicates an expected call of AskStream.
+func (mr *MockAssistantServiceMockRecorder) AskStream(response, content, chatId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageStream", reflect.TypeOf((*MockassistantService)(nil).SendMessageStream), response, content, chatId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AskStream", reflect.TypeOf((*MockAssistantService)(nil).AskStream), response, content, chatId)
 }
