@@ -56,17 +56,3 @@ func (m *conversation) peek() (Message, error) {
 	}
 	return m.first.message, nil
 }
-
-func (m *conversation) allMessages() ([]Message, error) {
-	if m.size == 0 {
-		return nil, ErrEmptyConversation
-	}
-	msgs := make([]Message, 0, MaxConversationSize)
-	actualMsg := m.first
-	msgs = append(msgs, actualMsg.message)
-	for actualMsg.next != nil {
-		actualMsg = actualMsg.next
-		msgs = append(msgs, actualMsg.message)
-	}
-	return msgs, nil
-}

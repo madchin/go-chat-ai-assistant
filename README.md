@@ -1,4 +1,39 @@
 ## Chat AI Assistant
+
+## System Architecture
+
+![Architecture](/.docs/architecture.png)
+
+## Release 0.3.0
+
+### Added tests for port/grpc and port/http
+
+
+---
+
+
+## Release 0.2.0
+
+### Integration with gemini ai model
+
+### Possibility to communicate with ai model via gRPC framework and HTTP protocol
+
+### All messages sent from customer (client-side) to assistant(ai-response) are cached in-memory. Consider it as "chat"
+
+### Messages within "chat" become outdated after certain time, and batch-saved to history repository in storage_cleaner service which can be referred as worker (runs continously in separate goroutine on specified interval). If save fails for any of the message, it is retried certain times (with respect to firebase delay for each document which is 1 second)
+
+### Each connection to gemini model (its based on RPC) is also cached and reused for specific chat, and removed periodically like messages within "chat"
+
+### Each chat bases on queue data structure, and for each chat message limit is established
+
+### Each message sent is validated only for client-side message (Customer)
+
+
+---
+
+
+## First planning 
+
 1. Introduction
     This README provides all information about the Chat AI Assistant module, its requirements, future features, basic use cases.
     1. Terms:
@@ -157,20 +192,3 @@
         - SendMessage(customerId string, content string)
         - RetrieveConversation(customerId string) []Message
         - RetrieveChatsHistory() []Chat
-
-
-## Release 0.2.0
-
-### Integration with gemini ai model
-
-### Possibility to communicate with ai model via gRPC framework and HTTP protocol
-
-### All messages sent from customer (client-side) to assistant(ai-response) are cached in-memory. Consider it as "chat"
-
-### Messages within "chat" become outdated after certain time, and batch-saved to history repository in storage_cleaner service which can be referred as worker (runs continously in separate goroutine on specified interval). If save fails for any of the message, it is retried certain times (with respect to firebase delay for each document which is 1 second)
-
-### Each connection to gemini model (its based on RPC) is also cached and reused for specific chat, and removed periodically like messages within "chat"
-
-### Each chat bases on queue data structure, and for each chat message limit is established
-
-### Each message sent is validated only for client-side message (Customer)

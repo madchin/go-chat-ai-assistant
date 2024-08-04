@@ -8,17 +8,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
 	"github.com/madchin/go-chat-ai-assistant/ports"
+	service "github.com/madchin/go-chat-ai-assistant/services"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 type GrpcServer struct {
-	chatService    ports.ChatService
-	historyService ports.HistoryRetrieverService
+	chatService            ports.ChatService
+	historyRetrieveService ports.HistoryService
 }
 
-func RegisterGrpcServer(chatService ports.ChatService, historyService ports.HistoryRetrieverService, host string, port int) {
-	chatServer := &GrpcServer{chatService, historyService}
+func Register(chatService *service.ChatService, historyRetrieveService *service.HistoryRetrieveService, host string, port int) {
+	chatServer := &GrpcServer{chatService, historyRetrieveService}
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		panic(err.Error())
@@ -44,7 +45,7 @@ func (g *GrpcServer) RetrieveHistory(_ *HistoryRetrieveRequest, stream Chat_Retr
 	errCh := make(chan error)
 	partialResponseCh := make(chan chat.ChatMessages)
 	go streamRetrieveHistoryPartialContent(partialResponseCh, errCh, stream)
-	err := g.historyService.RetrieveAllChatsHistory(partialResponseCh)
+	err := g.historyRetrieveService.RetrieveAllChatsHistoryStream(partialResponseCh)
 	if err != nil {
 		return err
 	}
@@ -53,15 +54,6 @@ func (g *GrpcServer) RetrieveHistory(_ *HistoryRetrieveRequest, stream Chat_Retr
 	}
 	return nil
 }
-
-// func (g *GrpcServer) RetrieveHistory(ctx context.Context, _ *HistoryRetrieveRequest) (*HistoryRetrieveResponse, error) {
-// 	history, err := g.historyService.RetrieveAllChatsHistory()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	resp := mapDomainChatMessagesToHistoryResponse(history)
-// 	return resp, nil
-// }
 
 func (g *GrpcServer) CreateChat(ctx context.Context, chat *ChatRequest) (*ChatResponse, error) {
 	chatId := uuid.NewString()
@@ -76,11 +68,7 @@ func (g *GrpcServer) CreateChat(ctx context.Context, chat *ChatRequest) (*ChatRe
 func (g *GrpcServer) SendMessage(ctx context.Context, msg *MessageRequest) (*MessageResponse, error) {
 	chatId := msg.GetChatId()
 	content := msg.GetContent()
-	customerMsg, err := chat.NewCustomerMessage(content)
-	if err != nil {
-		return &MessageResponse{}, err
-	}
-	response, err := g.chatService.SendMessage(chatId, customerMsg)
+	response, err := g.chatService.SendMessage(chatId, content)
 	if err != nil {
 		return &MessageResponse{}, err
 	}
@@ -90,21 +78,16 @@ func (g *GrpcServer) SendMessage(ctx context.Context, msg *MessageRequest) (*Mes
 func (g *GrpcServer) SendMessageStream(msg *MessageRequest, stream Chat_SendMessageStreamServer) error {
 	chatId := msg.GetChatId()
 	content := msg.GetContent()
-	customerMsg, err := chat.NewCustomerMessage(content)
-	if err != nil {
-		return err
-	}
 	assistantResponseCh := make(chan string)
 	errCh := make(chan error)
 	go streamSendMessagePartialContent(assistantResponseCh, errCh, stream)
-	err = g.chatService.SendMessageStream(assistantResponseCh, chatId, customerMsg)
+	err := g.chatService.SendMessageStream(assistantResponseCh, chatId, content)
 	if err != nil {
 		return err
 	}
 	if err = <-errCh; err != nil {
 		return err
 	}
-
 	return nil
 }
 

@@ -48,8 +48,8 @@ var testCasesContentValidation = []struct {
 	content  string
 	expected error
 }{
-	{strings.Repeat("a", minCharLength), ErrMessageShort},
-	{strings.Repeat("a", minCharLength+1), nil},
+	{strings.Repeat("a", MinCharLength), ErrMessageShort},
+	{strings.Repeat("a", MinCharLength+1), nil},
 	{"a", ErrMessageShort},
 	{"", ErrMessageShort},
 	{strings.Repeat("a", maxCharLength), nil},

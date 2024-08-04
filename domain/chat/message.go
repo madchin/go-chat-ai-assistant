@@ -2,12 +2,11 @@ package chat
 
 import (
 	"errors"
-	"strings"
 	"time"
 )
 
 const (
-	minCharLength = 5
+	MinCharLength = 5
 	maxCharLength = 200
 )
 
@@ -28,25 +27,14 @@ func NewMessage(author Participant, content string, timestamp int64) Message {
 
 func NewCustomerMessage(content string) (Message, error) {
 	msg := Message{Customer, content, time.Now().UnixMilli()}
-	if msg.author == Customer {
-		if err := msg.validateContent(); err != nil {
-			return Message{}, err
-		}
+	if err := msg.validateContent(); err != nil {
+		return Message{}, err
 	}
 	return msg, nil
 }
 
 func NewAssistantMessage(content string) Message {
 	msg := Message{Assistant, content, time.Now().UnixMilli()}
-	return msg
-}
-
-func NewValidMessageWithTimestamp(timestamp int64) Message {
-	return Message{Customer, strings.Repeat("a", minCharLength+1), timestamp}
-}
-
-func NewValidMessage() Message {
-	msg, _ := NewCustomerMessage(strings.Repeat("a", minCharLength+1))
 	return msg
 }
 
@@ -67,7 +55,7 @@ func (m Message) isOutdated(currTime, outdateTime int64) bool {
 }
 
 func (m Message) validateContent() error {
-	if len(m.content) <= minCharLength {
+	if len(m.content) <= MinCharLength {
 		return ErrMessageShort
 	}
 	if len(m.content) > maxCharLength {

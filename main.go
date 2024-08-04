@@ -1,20 +1,14 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"io"
-
 	firebase "firebase.google.com/go"
-	"github.com/madchin/go-chat-ai-assistant/adapters/ai_model/gemini"
+	assistant "github.com/madchin/go-chat-ai-assistant/adapters/ai_model/gemini"
 	"github.com/madchin/go-chat-ai-assistant/adapters/repository/cache"
 	"github.com/madchin/go-chat-ai-assistant/adapters/repository/history"
 	grpc_server "github.com/madchin/go-chat-ai-assistant/ports/gRPC"
 	http_server "github.com/madchin/go-chat-ai-assistant/ports/http"
 
 	service "github.com/madchin/go-chat-ai-assistant/services"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 func main() {
@@ -22,33 +16,33 @@ func main() {
 		ProjectID: "",
 	})
 	storage := cache.New()
-	model := gemini.NewModel("gemini-1.5-flash-001", "", "us-central1")
-	application := service.NewApplication(storage, history, model.Connections, storage, model)
-	http_server.RegisterHttpServer(&application.ChatService)
-	grpc_server.RegisterGrpcServer(&application.ChatService, &application.HistoryService, "127.0.0.1", 8081)
-	creds, err := credentials.NewClientTLSFromFile("cert/serv.cert", "chat.grpc-server.com")
-	if err != nil {
-		panic(err)
-	}
-	conn, err := grpc.NewClient("127.0.0.1:8081", grpc.WithTransportCredentials(creds))
-	if err != nil {
-		panic(err)
-	}
-	grpcClient := grpc_server.NewChatClient(conn)
-	resp, err := grpcClient.RetrieveHistory(context.Background(), nil)
-	if err != nil {
-		panic(err)
-	}
-	for {
-		response, err := resp.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("%v", response)
-	}
+	model := assistant.NewGemini("gemini-1.5-flash-001", "", "us-central1")
+	application := service.NewApplication(storage, history, model.Connections, model)
+	http_server.Register(application.Service.Chat, application.Service.History, "127.0.0.1:8080")
+	grpc_server.Register(application.Service.Chat, application.Service.History, "127.0.0.1", 8081)
+	// creds, err := credentials.NewClientTLSFromFile("cert/serv.cert", "chat.grpc-server.com")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// conn, err := grpc.NewClient("127.0.0.1:8081", grpc.WithTransportCredentials(creds))
+	// if err != nil {
+	// 	panic(err)
+	// }
+	//grpcClient := grpc_server.NewChatClient(conn)
+	// resp, err := grpcClient.RetrieveHistory(context.Background(), nil)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// for {
+	// 	response, err := resp.Recv()
+	// 	if err == io.EOF {
+	// 		break
+	// 	}
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	fmt.Printf("%v", response)
+	// }
 
 	// resp, err := grpcClient.CreateChat(context.Background(), &grpc_server.ChatRequest{})
 	// if err != nil {

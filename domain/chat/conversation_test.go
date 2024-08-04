@@ -168,11 +168,11 @@ func TestDequeueLastElementInConversation(t *testing.T) {
 
 func TestDequeueTwoElementsAfterEachOther(t *testing.T) {
 	cnvrst := &conversation{}
-	firstMsg, err := NewCustomerMessage(strings.Repeat("f", minCharLength+1))
+	firstMsg, err := NewCustomerMessage(strings.Repeat("f", MinCharLength+1))
 	if err != nil {
 		t.Fatalf("Unexpected error occured during creating first message, err: %v", err)
 	}
-	secondMsg, err := NewCustomerMessage(strings.Repeat("s", minCharLength+1))
+	secondMsg, err := NewCustomerMessage(strings.Repeat("s", MinCharLength+1))
 	if err != nil {
 		t.Fatalf("Unexpected error occured during creating second message, err: %v", err)
 	}
@@ -227,38 +227,6 @@ func TestPeek(t *testing.T) {
 	}
 }
 
-var testCasesAllMessages = []struct {
-	conversationSize int
-	expected         error
-}{
-	{0, ErrEmptyConversation},
-	{1, nil},
-	{2, nil},
-	{3, nil},
-	{4, nil},
-	{5, nil},
-}
-
-func TestRetrievingAllMessages(t *testing.T) {
-	for idx, tc := range testCasesAllMessages {
-		cnvrst := &conversation{}
-		seededMsgs, err := seedMessages(tc.conversationSize)
-		if err != nil {
-			t.Fatalf("Test case: %d failed. Seeding messages err %v", idx+1, err)
-		}
-		seedConversation(cnvrst, seededMsgs)
-		msgs, err := cnvrst.allMessages()
-		if err != tc.expected {
-			t.Fatalf("Test case: %d failed. Expected error: %v actual: %v", idx+1, tc.expected, err)
-		}
-		for i := 0; i < len(msgs); i++ {
-			if msgs[i] != seededMsgs[i] {
-				t.Fatalf("Test case: %d failed. At message idx: %d Retrieved message != Seeded message idx. Expected: %v, Actual: %v", idx+1, i, seededMsgs[i], msgs[i])
-			}
-		}
-	}
-}
-
 func seedConversation(cnvrst *conversation, msgs []Message) {
 	for _, msg := range msgs {
 		cnvrst.enqueue(msg)
@@ -268,7 +236,7 @@ func seedConversation(cnvrst *conversation, msgs []Message) {
 func seedMessages(count int) ([]Message, error) {
 	msgs := make([]Message, count)
 	for i := 0; i < count; i++ {
-		content := strings.Repeat(fmt.Sprintf("%d", i), minCharLength+1)
+		content := strings.Repeat(fmt.Sprintf("%d", i), MinCharLength+1)
 		msg, err := NewCustomerMessage(content)
 		if err != nil {
 			return nil, err
