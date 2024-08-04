@@ -20,18 +20,19 @@ type codeErrors struct {
 	c string
 }
 
+type descriptionErrors struct {
+	d string
+}
+
 var (
 	serverCodeError = codeErrors{"server"}
 	clientCodeError = codeErrors{"client"}
-)
 
-func (i CustomerMessage) toDomainMessage() (chat.Message, error) {
-	msg, err := chat.NewCustomerMessage(i.Content)
-	if err != nil {
-		return chat.Message{}, err
-	}
-	return msg, nil
-}
+	genericDescriptionError = descriptionErrors{"Oops! Something went wrong"}
+	wrongContentTypeError   = descriptionErrors{"Content-Type header need to be application/json"}
+	bodyParseError          = descriptionErrors{"JSON parse failed"}
+	wrongCookieValue        = descriptionErrors{"Wrong cookie value"}
+)
 
 func mapDomainMessageToHttpAssistantMessage(domainMsg chat.Message) AssistantMessage {
 	return AssistantMessage{Author: domainMsg.Author().Role(), Content: domainMsg.Content()}

@@ -54,25 +54,25 @@ func (h *HttpServer) createChatHandler(w http.ResponseWriter, r *http.Request, _
 
 func (h *HttpServer) sendMessageHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if r.Header.Get("Content-Type") != "application/json" {
-		badRequest(w, clientCodeError.c, "Content-Type header need to be application/json")
+		badRequest(w, clientCodeError.c, wrongContentTypeError.d)
+		return
 	}
 	var customerMessage CustomerMessage
 	err := json.NewDecoder(r.Body).Decode(&customerMessage)
 	if err != nil {
-		badRequest(w, clientCodeError.c, "JSON parse failed")
+		badRequest(w, clientCodeError.c, bodyParseError.d)
 		return
 	}
 	chatIdCookie, err := r.Cookie("chatId")
-	if err != nil || !isValidUUID(chatIdCookie.Value) {
-		badRequest(w, clientCodeError.c, err.Error())
-		return
-	}
-	customerDomainMsg, err := customerMessage.toDomainMessage()
 	if err != nil {
 		badRequest(w, clientCodeError.c, err.Error())
 		return
 	}
-	msg, err := h.chatService.SendMessage(chatIdCookie.Value, customerDomainMsg)
+	if !isValidUUID(chatIdCookie.Value) {
+		badRequest(w, clientCodeError.c, wrongCookieValue.d)
+		return
+	}
+	msg, err := h.chatService.SendMessage(chatIdCookie.Value, customerMessage.Content)
 	if err != nil {
 		badRequest(w, clientCodeError.c, err.Error())
 		return
@@ -93,7 +93,7 @@ func badRequest(w http.ResponseWriter, code, description string) {
 }
 
 func internal(w http.ResponseWriter) {
-	httpErr := HttpError{Code: "server", Description: "Oops! Something went wrong"}
+	httpErr := HttpError{Code: serverCodeError.c, Description: genericDescriptionError.d}
 	w.WriteHeader(http.StatusBadRequest)
 	_ = json.NewEncoder(w).Encode(&httpErr)
 }
