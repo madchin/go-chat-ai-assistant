@@ -21,7 +21,7 @@ func NewGemini(model, projectId, location string) *geminiAssistant {
 	return &geminiAssistant{model, projectId, location, make(map[string]*connection, cache.ChatsCapacity)}
 }
 
-func (g *geminiAssistant) SendMessageStream(responseCh chan<- string, content, chatId string) (chat.Message, error) {
+func (g *geminiAssistant) AskStream(responseCh chan<- string, content, chatId string) (chat.Message, error) {
 	ctx := context.Background()
 	client, err := g.createClientConnection(ctx, chatId)
 	if err != nil {
@@ -54,7 +54,7 @@ func (g *geminiAssistant) SendMessageStream(responseCh chan<- string, content, c
 	return chat.NewAssistantMessage(responseMsgContent), nil
 }
 
-func (g *geminiAssistant) SendMessage(content, chatId string) (chat.Message, error) {
+func (g *geminiAssistant) Ask(content, chatId string) (chat.Message, error) {
 	ctx := context.Background()
 	client, err := g.createClientConnection(ctx, chatId)
 	if err != nil {

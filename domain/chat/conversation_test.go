@@ -168,11 +168,11 @@ func TestDequeueLastElementInConversation(t *testing.T) {
 
 func TestDequeueTwoElementsAfterEachOther(t *testing.T) {
 	cnvrst := &conversation{}
-	firstMsg, err := NewCustomerMessage(strings.Repeat("f", minCharLength+1))
+	firstMsg, err := NewCustomerMessage(strings.Repeat("f", MinCharLength+1))
 	if err != nil {
 		t.Fatalf("Unexpected error occured during creating first message, err: %v", err)
 	}
-	secondMsg, err := NewCustomerMessage(strings.Repeat("s", minCharLength+1))
+	secondMsg, err := NewCustomerMessage(strings.Repeat("s", MinCharLength+1))
 	if err != nil {
 		t.Fatalf("Unexpected error occured during creating second message, err: %v", err)
 	}
@@ -236,7 +236,7 @@ func seedConversation(cnvrst *conversation, msgs []Message) {
 func seedMessages(count int) ([]Message, error) {
 	msgs := make([]Message, count)
 	for i := 0; i < count; i++ {
-		content := strings.Repeat(fmt.Sprintf("%d", i), minCharLength+1)
+		content := strings.Repeat(fmt.Sprintf("%d", i), MinCharLength+1)
 		msg, err := NewCustomerMessage(content)
 		if err != nil {
 			return nil, err

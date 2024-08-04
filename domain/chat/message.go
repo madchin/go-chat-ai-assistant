@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	minCharLength = 5
+	MinCharLength = 5
 	maxCharLength = 200
 )
 
@@ -55,7 +55,7 @@ func (m Message) isOutdated(currTime, outdateTime int64) bool {
 }
 
 func (m Message) validateContent() error {
-	if len(m.content) <= minCharLength {
+	if len(m.content) <= MinCharLength {
 		return ErrMessageShort
 	}
 	if len(m.content) > maxCharLength {

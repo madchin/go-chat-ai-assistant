@@ -27,8 +27,8 @@ type storageService interface {
 func NewApplication(
 	storage storageService,
 	history chat.HistoryRepository,
-	clientConnectionsStorageService clientConnectionsStorageService,
-	assistant assistantService,
+	clientConnectionsStorageService connectionsStorageRemover,
+	assistant AssistantService,
 ) *Application {
 	return &Application{
 		Service: &services{

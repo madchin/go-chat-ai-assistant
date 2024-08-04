@@ -2,11 +2,11 @@ package http_server
 
 import "github.com/madchin/go-chat-ai-assistant/domain/chat"
 
-type IncomingMessage struct {
+type CustomerMessage struct {
 	Content string `json:"content"`
 }
 
-type OutcomingMessage struct {
+type AssistantMessage struct {
 	Author  string `json:"author"`
 	Content string `json:"content"`
 }
@@ -16,14 +16,24 @@ type HttpError struct {
 	Description string `json:"description"`
 }
 
-func (i IncomingMessage) toDomainMessage() (chat.Message, error) {
-	msg, err := chat.NewCustomerMessage(i.Content)
-	if err != nil {
-		return chat.Message{}, err
-	}
-	return msg, nil
+type codeErrors struct {
+	c string
 }
 
-func mapDomainMessageToOutcomingMessage(domainMsg chat.Message) OutcomingMessage {
-	return OutcomingMessage{Author: domainMsg.Author().Role(), Content: domainMsg.Content()}
+type descriptionErrors struct {
+	d string
+}
+
+var (
+	serverCodeError = codeErrors{"server"}
+	clientCodeError = codeErrors{"client"}
+
+	genericDescriptionError = descriptionErrors{"Oops! Something went wrong"}
+	wrongContentTypeError   = descriptionErrors{"Content-Type header need to be application/json"}
+	bodyParseError          = descriptionErrors{"JSON parse failed"}
+	wrongCookieValue        = descriptionErrors{"Wrong cookie value"}
+)
+
+func mapDomainMessageToHttpAssistantMessage(domainMsg chat.Message) AssistantMessage {
+	return AssistantMessage{Author: domainMsg.Author().Role(), Content: domainMsg.Content()}
 }

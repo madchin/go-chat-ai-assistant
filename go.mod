@@ -8,6 +8,7 @@ require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/julienschmidt/httprouter v1.3.0
+	go.uber.org/mock v0.4.0
 	google.golang.org/api v0.186.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
