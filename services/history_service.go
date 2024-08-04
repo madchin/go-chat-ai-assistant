@@ -3,14 +3,10 @@ package service
 import "github.com/madchin/go-chat-ai-assistant/domain/chat"
 
 type HistoryRetrieveService struct {
-	history historyRetriever
+	history chat.HistoryRetriever
 }
 
-type historyRetriever interface {
-	RetrieveAllChatsHistory(partialResponseCh chan<- chat.ChatMessages) error
-}
-
-func NewHistoryRetrieveService(historyRetriever historyRetriever) *HistoryRetrieveService {
+func NewHistoryRetrieveService(historyRetriever chat.HistoryRetriever) *HistoryRetrieveService {
 	return &HistoryRetrieveService{historyRetriever}
 }
 
