@@ -6,8 +6,8 @@ import (
 
 type ChatService interface {
 	CreateChat(chatId, context string) error
-	SendMessage(chatId string, customerMsg chat.Message) (chat.Message, error)
-	SendMessageStream(responseCh chan<- string, chatId string, customerMsg chat.Message) error
+	SendMessage(chatId, content string) (chat.Message, error)
+	SendMessageStream(responseCh chan<- string, chatId, content string) error
 }
 
 type HistoryService interface {

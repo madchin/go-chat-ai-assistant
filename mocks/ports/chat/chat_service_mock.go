@@ -54,30 +54,30 @@ func (mr *MockChatServiceMockRecorder) CreateChat(chatId, context any) *gomock.C
 }
 
 // SendMessage mocks base method.
-func (m *MockChatService) SendMessage(chatId string, customerMsg chat.Message) (chat.Message, error) {
+func (m *MockChatService) SendMessage(chatId, content string) (chat.Message, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessage", chatId, customerMsg)
+	ret := m.ctrl.Call(m, "SendMessage", chatId, content)
 	ret0, _ := ret[0].(chat.Message)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MockChatServiceMockRecorder) SendMessage(chatId, customerMsg any) *gomock.Call {
+func (mr *MockChatServiceMockRecorder) SendMessage(chatId, content any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockChatService)(nil).SendMessage), chatId, customerMsg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockChatService)(nil).SendMessage), chatId, content)
 }
 
 // SendMessageStream mocks base method.
-func (m *MockChatService) SendMessageStream(responseCh chan<- string, chatId string, customerMsg chat.Message) error {
+func (m *MockChatService) SendMessageStream(responseCh chan<- string, chatId, content string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessageStream", responseCh, chatId, customerMsg)
+	ret := m.ctrl.Call(m, "SendMessageStream", responseCh, chatId, content)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendMessageStream indicates an expected call of SendMessageStream.
-func (mr *MockChatServiceMockRecorder) SendMessageStream(responseCh, chatId, customerMsg any) *gomock.Call {
+func (mr *MockChatServiceMockRecorder) SendMessageStream(responseCh, chatId, content any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageStream", reflect.TypeOf((*MockChatService)(nil).SendMessageStream), responseCh, chatId, customerMsg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessageStream", reflect.TypeOf((*MockChatService)(nil).SendMessageStream), responseCh, chatId, content)
 }

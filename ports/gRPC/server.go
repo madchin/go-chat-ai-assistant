@@ -67,11 +67,7 @@ func (g *GrpcServer) CreateChat(ctx context.Context, chat *ChatRequest) (*ChatRe
 func (g *GrpcServer) SendMessage(ctx context.Context, msg *MessageRequest) (*MessageResponse, error) {
 	chatId := msg.GetChatId()
 	content := msg.GetContent()
-	customerMsg, err := chat.NewCustomerMessage(content)
-	if err != nil {
-		return &MessageResponse{}, err
-	}
-	response, err := g.chatService.SendMessage(chatId, customerMsg)
+	response, err := g.chatService.SendMessage(chatId, content)
 	if err != nil {
 		return &MessageResponse{}, err
 	}
@@ -81,14 +77,10 @@ func (g *GrpcServer) SendMessage(ctx context.Context, msg *MessageRequest) (*Mes
 func (g *GrpcServer) SendMessageStream(msg *MessageRequest, stream Chat_SendMessageStreamServer) error {
 	chatId := msg.GetChatId()
 	content := msg.GetContent()
-	customerMsg, err := chat.NewCustomerMessage(content)
-	if err != nil {
-		return err
-	}
 	assistantResponseCh := make(chan string)
 	errCh := make(chan error)
 	go streamSendMessagePartialContent(assistantResponseCh, errCh, stream)
-	err = g.chatService.SendMessageStream(assistantResponseCh, chatId, customerMsg)
+	err := g.chatService.SendMessageStream(assistantResponseCh, chatId, content)
 	if err != nil {
 		return err
 	}

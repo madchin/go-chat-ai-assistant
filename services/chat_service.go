@@ -22,7 +22,11 @@ func (c *ChatService) CreateChat(chatId, context string) error {
 	return c.storage.CreateChat(chatId, context)
 }
 
-func (c *ChatService) SendMessage(chatId string, customerMsg chat.Message) (chat.Message, error) {
+func (c *ChatService) SendMessage(chatId, question string) (chat.Message, error) {
+	customerMsg, err := chat.NewCustomerMessage(question)
+	if err != nil {
+		return chat.Message{}, err
+	}
 	if err := c.storage.SendMessage(chatId, customerMsg); err != nil {
 		return chat.Message{}, err
 	}
@@ -37,7 +41,11 @@ func (c *ChatService) SendMessage(chatId string, customerMsg chat.Message) (chat
 
 }
 
-func (c *ChatService) SendMessageStream(responseCh chan<- string, chatId string, customerMsg chat.Message) error {
+func (c *ChatService) SendMessageStream(responseCh chan<- string, chatId, question string) error {
+	customerMsg, err := chat.NewCustomerMessage(question)
+	if err != nil {
+		return err
+	}
 	if err := c.storage.SendMessage(chatId, customerMsg); err != nil {
 		return err
 	}
