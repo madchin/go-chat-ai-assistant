@@ -7,14 +7,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/madchin/go-chat-ai-assistant/domain/chat"
+	"github.com/madchin/go-chat-ai-assistant/ports"
 	service "github.com/madchin/go-chat-ai-assistant/services"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 type GrpcServer struct {
-	chatService            *service.ChatService
-	historyRetrieveService *service.HistoryRetrieveService
+	chatService            ports.ChatService
+	historyRetrieveService ports.HistoryService
 }
 
 func Register(chatService *service.ChatService, historyRetrieveService *service.HistoryRetrieveService, host string, port int) {
@@ -87,7 +88,6 @@ func (g *GrpcServer) SendMessageStream(msg *MessageRequest, stream Chat_SendMess
 	if err = <-errCh; err != nil {
 		return err
 	}
-
 	return nil
 }
 
