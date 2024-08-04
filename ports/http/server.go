@@ -14,22 +14,25 @@ type route struct {
 }
 
 var (
-	chatSend   = route{"/chat/send"}
-	chatCreate = route{"/chat/create"}
+	chatSend    = route{"/chat/send"}
+	chatCreate  = route{"/chat/create"}
+	chatHistory = route{"/chat/history"}
 )
 
 type HttpServer struct {
-	chatService ports.ChatService
-	router      *httprouter.Router
+	chatService    ports.ChatService
+	historyService ports.HistoryService
+	router         *httprouter.Router
 }
 
 func (h *HttpServer) registerRoutes() {
 	h.router.POST(chatSend.r, h.sendMessageHandler)
 	h.router.POST(chatCreate.r, h.createChatHandler)
+	h.router.GET(chatHistory.r, h.retrieveHistoryHandler)
 }
 
-func Register(chatService ports.ChatService, host string) {
-	server := &HttpServer{chatService, httprouter.New()}
+func Register(chatService ports.ChatService, historyService ports.HistoryService, host string) {
+	server := &HttpServer{chatService, historyService, httprouter.New()}
 	server.router.PanicHandler = crashHandler
 	server.registerRoutes()
 	go func() {
@@ -84,6 +87,19 @@ func (h *HttpServer) sendMessageHandler(w http.ResponseWriter, r *http.Request, 
 		internal(w)
 	}
 
+}
+
+func (h *HttpServer) retrieveHistoryHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	history, err := h.historyService.RetrieveAllChatsHistory()
+	if err != nil {
+		badRequest(w, serverCodeError.c, err.Error())
+		return
+	}
+	httpHistory := mapDomainChatMessagesToHttpChatsHistory(history)
+	err = json.NewEncoder(w).Encode(httpHistory)
+	if err != nil {
+		badRequest(w, serverCodeError.c, bodyParseError.d)
+	}
 }
 
 func badRequest(w http.ResponseWriter, code, description string) {

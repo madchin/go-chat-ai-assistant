@@ -26,7 +26,7 @@ type mocks struct {
 func TestCreateChat(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
 		incomingReq, resWriter := httptest.NewRequest("POST", chatCreate.r, nil), httptest.NewRecorder()
 
 		mocks.chatService.EXPECT().CreateChat(gomock.Any(), gomock.Any())
@@ -49,7 +49,8 @@ func TestCreateChat(t *testing.T) {
 		const chatCreationError = "error"
 
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
+
 		incomingReq, resWriter := httptest.NewRequest("POST", chatCreate.r, nil), httptest.NewRecorder()
 
 		mocks.chatService.EXPECT().CreateChat(gomock.Any(), gomock.Any()).Return(errors.New(chatCreationError))
@@ -79,7 +80,7 @@ func TestCreateChat(t *testing.T) {
 func TestSendMessage(t *testing.T) {
 	t.Run("Happy path", func(t *testing.T) {
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
 		customerMsgContent := "my message"
 		httpCustomerMsg := CustomerMessage{Content: customerMsgContent}
 		marshaledCustomerMsg, _ := json.Marshal(httpCustomerMsg)
@@ -112,7 +113,7 @@ func TestSendMessage(t *testing.T) {
 	})
 	t.Run("Header Content-Type is empty", func(t *testing.T) {
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
 		customerMsgContent := "my message"
 		httpCustomerMsg := CustomerMessage{Content: customerMsgContent}
 		marshaledCustomerMsg, _ := json.Marshal(httpCustomerMsg)
@@ -139,7 +140,7 @@ func TestSendMessage(t *testing.T) {
 	})
 	t.Run("Header Content-Type != \"application/json\"", func(t *testing.T) {
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
 		customerMsgContent := "my message"
 		httpCustomerMsg := CustomerMessage{Content: customerMsgContent}
 		marshaledCustomerMsg, _ := json.Marshal(httpCustomerMsg)
@@ -167,7 +168,7 @@ func TestSendMessage(t *testing.T) {
 	})
 	t.Run("Wrong request body", func(t *testing.T) {
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
 		marshaledCustomerMsg, _ := json.Marshal([]byte("{\"Some\"}"))
 		incomingReq, resWriter := httptest.NewRequest("POST", "/chat/send", bytes.NewBuffer(marshaledCustomerMsg)), httptest.NewRecorder()
 		incomingReq.Header.Add("Content-Type", "application/json")
@@ -193,7 +194,7 @@ func TestSendMessage(t *testing.T) {
 	})
 	t.Run("ChatId cookie is missing", func(t *testing.T) {
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
 		customerMsgContent := "my message"
 		httpCustomerMsg := CustomerMessage{Content: customerMsgContent}
 		marshaledCustomerMsg, _ := json.Marshal(httpCustomerMsg)
@@ -222,7 +223,7 @@ func TestSendMessage(t *testing.T) {
 
 	t.Run("ChatId cookie value is wrong", func(t *testing.T) {
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
 		customerMsgContent := "my message"
 		httpCustomerMsg := CustomerMessage{Content: customerMsgContent}
 		marshaledCustomerMsg, _ := json.Marshal(httpCustomerMsg)
@@ -251,10 +252,10 @@ func TestSendMessage(t *testing.T) {
 		}
 	})
 
-	t.Run("chat service SendMessage returns error", func(t *testing.T) {
+	t.Run("send message from chat service returns error", func(t *testing.T) {
 		const sendMessageError = "send message error"
 		mocks := setupMocks(t)
-		server := &HttpServer{mocks.chatService, httprouter.New()}
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
 		customerMsgContent := "my message"
 		httpCustomerMsg := CustomerMessage{Content: customerMsgContent}
 		marshaledCustomerMsg, _ := json.Marshal(httpCustomerMsg)
@@ -282,6 +283,69 @@ func TestSendMessage(t *testing.T) {
 		}
 		if httpErr.Description != sendMessageError {
 			t.Fatalf("wrong HttpErr Description field: expected: %s, actual: %s", sendMessageError, httpErr.Description)
+		}
+	})
+}
+
+func TestRetrieveHistory(t *testing.T) {
+	t.Run("Happy path", func(t *testing.T) {
+		mocks := setupMocks(t)
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
+		assistantMsg := chat.NewAssistantMessage("yo")
+		chatId := "elo"
+		history := chat.ChatMessages{chatId: []chat.Message{assistantMsg}}
+		mocks.historyService.EXPECT().RetrieveAllChatsHistory().Return(history, nil)
+		incomingReq, resWriter := httptest.NewRequest("GET", "/chat/history", nil), httptest.NewRecorder()
+		server.retrieveHistoryHandler(resWriter, incomingReq, nil)
+
+		result := resWriter.Result()
+
+		if result.StatusCode != http.StatusOK {
+			t.Fatalf("Status code is wrong. Expected: %d, Actual: %d", http.StatusOK, result.StatusCode)
+		}
+		var historyResponse ChatsHistory
+		resBody, _ := io.ReadAll(result.Body)
+		if err := json.Unmarshal(resBody, &historyResponse); err != nil {
+			t.Fatalf("error during unmarshaling response body, err: %v", err)
+		}
+		msgs, ok := historyResponse.Chats[chatId]
+		if !ok {
+			t.Fatalf("Http response body do not have %s history field.", chatId)
+		}
+		if msgs[0].Author != assistantMsg.Author().Role() {
+			t.Fatalf("Http response body Author field is wrong. Expected %s, Actual: %s", assistantMsg.Author().Role(), msgs[0].Author)
+		}
+		if msgs[0].Content != assistantMsg.Content() {
+			t.Fatalf("Http response body Content field is wrong. Expected %s, Actual: %s", assistantMsg.Content(), msgs[0].Content)
+		}
+		if msgs[0].Timestamp != assistantMsg.Timestamp() {
+			t.Fatalf("Http response body Timestamp field is wrong. Expected %d, Actual: %d", assistantMsg.Timestamp(), msgs[0].Timestamp)
+		}
+	})
+
+	t.Run("Retrieving history service returns error", func(t *testing.T) {
+		const retrieveHistoryError = "retrieve history error"
+		mocks := setupMocks(t)
+		server := &HttpServer{mocks.chatService, mocks.historyService, httprouter.New()}
+		mocks.historyService.EXPECT().RetrieveAllChatsHistory().Return(chat.ChatMessages{}, errors.New(retrieveHistoryError))
+		incomingReq, resWriter := httptest.NewRequest("GET", "/chat/history", nil), httptest.NewRecorder()
+		server.retrieveHistoryHandler(resWriter, incomingReq, nil)
+
+		result := resWriter.Result()
+
+		if result.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Status code is wrong. Expected: %d, Actual: %d", http.StatusOK, result.StatusCode)
+		}
+		var httpErr HttpError
+		resBody, _ := io.ReadAll(result.Body)
+		if err := json.Unmarshal(resBody, &httpErr); err != nil {
+			t.Fatalf("error during unmarshaling response body, err: %v", err)
+		}
+		if httpErr.Code != serverCodeError.c {
+			t.Fatalf("Expected http err Code: %s, Actual: %s", serverCodeError.c, httpErr.Code)
+		}
+		if httpErr.Description != retrieveHistoryError {
+			t.Fatalf("Expected http err Description: %s, Actual: %s", retrieveHistoryError, httpErr.Description)
 		}
 	})
 }

@@ -10,6 +10,10 @@ func NewHistoryRetrieveService(historyRetriever chat.HistoryRetriever) *HistoryR
 	return &HistoryRetrieveService{historyRetriever}
 }
 
-func (h *HistoryRetrieveService) RetrieveAllChatsHistory(partialResponseCh chan<- chat.ChatMessages) error {
-	return h.history.RetrieveAllChatsHistory(partialResponseCh)
+func (h *HistoryRetrieveService) RetrieveAllChatsHistoryStream(partialResponseCh chan<- chat.ChatMessages) error {
+	return h.history.RetrieveAllChatsHistoryStream(partialResponseCh)
+}
+
+func (h *HistoryRetrieveService) RetrieveAllChatsHistory() (chat.ChatMessages, error) {
+	return h.history.RetrieveAllChatsHistory()
 }

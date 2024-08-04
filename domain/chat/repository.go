@@ -18,7 +18,8 @@ type AssistantService interface {
 }
 
 type HistoryRetriever interface {
-	RetrieveAllChatsHistory(partialResponseCh chan<- ChatMessages) error
+	RetrieveAllChatsHistory() (ChatMessages, error)
+	RetrieveAllChatsHistoryStream(partialResponseCh chan<- ChatMessages) error
 }
 
 type HistorySaver interface {
