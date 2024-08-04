@@ -20,7 +20,7 @@ type Application struct {
 }
 
 type storageService interface {
-	chat.Repository
+	chat.StorageRepository
 	storageRemover
 }
 
@@ -28,7 +28,7 @@ func NewApplication(
 	storage storageService,
 	history chat.HistoryRepository,
 	clientConnectionsStorageService connectionsStorageRemover,
-	assistant AssistantService,
+	assistant chat.AssistantService,
 ) *Application {
 	return &Application{
 		Service: &services{

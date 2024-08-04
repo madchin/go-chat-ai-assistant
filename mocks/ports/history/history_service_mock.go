@@ -40,15 +40,30 @@ func (m *MockHistoryService) EXPECT() *MockHistoryServiceMockRecorder {
 }
 
 // RetrieveAllChatsHistory mocks base method.
-func (m *MockHistoryService) RetrieveAllChatsHistory(partialResponseCh chan<- chat.ChatMessages) error {
+func (m *MockHistoryService) RetrieveAllChatsHistory() (chat.ChatMessages, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetrieveAllChatsHistory", partialResponseCh)
+	ret := m.ctrl.Call(m, "RetrieveAllChatsHistory")
+	ret0, _ := ret[0].(chat.ChatMessages)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RetrieveAllChatsHistory indicates an expected call of RetrieveAllChatsHistory.
+func (mr *MockHistoryServiceMockRecorder) RetrieveAllChatsHistory() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetrieveAllChatsHistory", reflect.TypeOf((*MockHistoryService)(nil).RetrieveAllChatsHistory))
+}
+
+// RetrieveAllChatsHistoryStream mocks base method.
+func (m *MockHistoryService) RetrieveAllChatsHistoryStream(partialResponseCh chan<- chat.ChatMessages) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RetrieveAllChatsHistoryStream", partialResponseCh)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RetrieveAllChatsHistory indicates an expected call of RetrieveAllChatsHistory.
-func (mr *MockHistoryServiceMockRecorder) RetrieveAllChatsHistory(partialResponseCh any) *gomock.Call {
+// RetrieveAllChatsHistoryStream indicates an expected call of RetrieveAllChatsHistoryStream.
+func (mr *MockHistoryServiceMockRecorder) RetrieveAllChatsHistoryStream(partialResponseCh any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetrieveAllChatsHistory", reflect.TypeOf((*MockHistoryService)(nil).RetrieveAllChatsHistory), partialResponseCh)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetrieveAllChatsHistoryStream", reflect.TypeOf((*MockHistoryService)(nil).RetrieveAllChatsHistoryStream), partialResponseCh)
 }

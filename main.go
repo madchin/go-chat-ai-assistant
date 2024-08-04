@@ -1,11 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
-	"time"
-
 	firebase "firebase.google.com/go"
 	assistant "github.com/madchin/go-chat-ai-assistant/adapters/ai_model/gemini"
 	"github.com/madchin/go-chat-ai-assistant/adapters/repository/cache"
@@ -14,8 +9,6 @@ import (
 	http_server "github.com/madchin/go-chat-ai-assistant/ports/http"
 
 	service "github.com/madchin/go-chat-ai-assistant/services"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 func main() {
@@ -25,17 +18,17 @@ func main() {
 	storage := cache.New()
 	model := assistant.NewGemini("gemini-1.5-flash-001", "", "us-central1")
 	application := service.NewApplication(storage, history, model.Connections, model)
-	http_server.Register(application.Service.Chat, "127.0.0.1")
+	http_server.Register(application.Service.Chat, application.Service.History, "127.0.0.1:8080")
 	grpc_server.Register(application.Service.Chat, application.Service.History, "127.0.0.1", 8081)
-	creds, err := credentials.NewClientTLSFromFile("cert/serv.cert", "chat.grpc-server.com")
-	if err != nil {
-		panic(err)
-	}
-	conn, err := grpc.NewClient("127.0.0.1:8081", grpc.WithTransportCredentials(creds))
-	if err != nil {
-		panic(err)
-	}
-	grpcClient := grpc_server.NewChatClient(conn)
+	// creds, err := credentials.NewClientTLSFromFile("cert/serv.cert", "chat.grpc-server.com")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// conn, err := grpc.NewClient("127.0.0.1:8081", grpc.WithTransportCredentials(creds))
+	// if err != nil {
+	// 	panic(err)
+	// }
+	//grpcClient := grpc_server.NewChatClient(conn)
 	// resp, err := grpcClient.RetrieveHistory(context.Background(), nil)
 	// if err != nil {
 	// 	panic(err)
@@ -51,38 +44,38 @@ func main() {
 	// 	fmt.Printf("%v", response)
 	// }
 
-	resp, err := grpcClient.CreateChat(context.Background(), &grpc_server.ChatRequest{})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(resp.GetChatId())
-	resp2, err := grpcClient.CreateChat(context.Background(), &grpc_server.ChatRequest{})
-	if err != nil {
-		panic(err)
-	}
-	iter := 0
-	for {
-		log.Printf("we start")
-		respp, err := grpcClient.SendMessage(context.Background(), &grpc_server.MessageRequest{ChatId: resp.GetChatId(), Content: fmt.Sprintf("Hello Yabadubi %d", iter)})
-		iter++
-		if err != nil {
-			log.Printf("error during sending message%v", err)
-		} else {
-			log.Printf("full message is %s %s", respp.GetAuthor(), respp.GetContent())
-		}
+	// resp, err := grpcClient.CreateChat(context.Background(), &grpc_server.ChatRequest{})
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println(resp.GetChatId())
+	// resp2, err := grpcClient.CreateChat(context.Background(), &grpc_server.ChatRequest{})
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// iter := 0
+	// for {
+	// 	log.Printf("we start")
+	// 	respp, err := grpcClient.SendMessage(context.Background(), &grpc_server.MessageRequest{ChatId: resp.GetChatId(), Content: fmt.Sprintf("Hello Yabadubi %d", iter)})
+	// 	iter++
+	// 	if err != nil {
+	// 		log.Printf("error during sending message%v", err)
+	// 	} else {
+	// 		log.Printf("full message is %s %s", respp.GetAuthor(), respp.GetContent())
+	// 	}
 
-		<-time.After(time.Millisecond * time.Duration(10000))
-		respp2, err := grpcClient.SendMessage(context.Background(), &grpc_server.MessageRequest{ChatId: resp2.GetChatId(), Content: fmt.Sprintf("Hello AAHAHAH %d", iter)})
-		iter++
-		if err != nil {
-			log.Printf("error during sending message%v", err)
-		} else {
-			log.Printf("full message is %s %s", respp2.GetAuthor(), respp2.GetContent())
-		}
-		log.Printf("we end")
+	// 	<-time.After(time.Millisecond * time.Duration(10000))
+	// 	respp2, err := grpcClient.SendMessage(context.Background(), &grpc_server.MessageRequest{ChatId: resp2.GetChatId(), Content: fmt.Sprintf("Hello AAHAHAH %d", iter)})
+	// 	iter++
+	// 	if err != nil {
+	// 		log.Printf("error during sending message%v", err)
+	// 	} else {
+	// 		log.Printf("full message is %s %s", respp2.GetAuthor(), respp2.GetContent())
+	// 	}
+	// 	log.Printf("we end")
 
-		<-time.After(time.Millisecond * time.Duration(10000))
-	}
+	// 	<-time.After(time.Millisecond * time.Duration(10000))
+	// }
 	// err := storage.CreateChat("1", "")
 	// if err != nil {
 	// 	fmt.Printf("err is %v", err)

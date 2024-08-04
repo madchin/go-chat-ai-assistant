@@ -16,6 +16,16 @@ type HttpError struct {
 	Description string `json:"description"`
 }
 
+type Message struct {
+	Author    string `json:"author"`
+	Content   string `json:"content"`
+	Timestamp int64  `json:"timestamp"`
+}
+
+type ChatsHistory struct {
+	Chats map[string][]Message `json:"chats"`
+}
+
 type codeErrors struct {
 	c string
 }
@@ -36,4 +46,16 @@ var (
 
 func mapDomainMessageToHttpAssistantMessage(domainMsg chat.Message) AssistantMessage {
 	return AssistantMessage{Author: domainMsg.Author().Role(), Content: domainMsg.Content()}
+}
+
+func mapDomainChatMessagesToHttpChatsHistory(domainChatMessages chat.ChatMessages) ChatsHistory {
+	chatsHistory := make(map[string][]Message, len(domainChatMessages))
+	for chatId, domainMessages := range domainChatMessages {
+		httpMessages := make([]Message, len(domainMessages))
+		for i := 0; i < len(domainMessages); i++ {
+			httpMessages[i] = Message{Author: domainMessages[i].Author().Role(), Content: domainMessages[i].Content(), Timestamp: domainMessages[i].Timestamp()}
+		}
+		chatsHistory[chatId] = httpMessages
+	}
+	return ChatsHistory{Chats: chatsHistory}
 }

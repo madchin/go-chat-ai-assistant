@@ -44,7 +44,7 @@ func (g *GrpcServer) RetrieveHistory(_ *HistoryRetrieveRequest, stream Chat_Retr
 	errCh := make(chan error)
 	partialResponseCh := make(chan chat.ChatMessages)
 	go streamRetrieveHistoryPartialContent(partialResponseCh, errCh, stream)
-	err := g.historyRetrieveService.RetrieveAllChatsHistory(partialResponseCh)
+	err := g.historyRetrieveService.RetrieveAllChatsHistoryStream(partialResponseCh)
 	if err != nil {
 		return err
 	}

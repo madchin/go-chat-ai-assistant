@@ -60,7 +60,7 @@ func (h *history) SaveHistory(chatMessages chat.ChatMessages) error {
 	return h.trySaveHistory(storageChats, retries)
 }
 
-func (h *history) RetrieveAllChatsHistory(responseCh chan<- chat.ChatMessages) error {
+func (h *history) RetrieveAllChatsHistoryStream(responseCh chan<- chat.ChatMessages) error {
 	chatsCollection := h.chatCollection()
 	iter := chatsCollection.Documents(context.Background())
 	defer iter.Stop()
@@ -85,6 +85,29 @@ func (h *history) RetrieveAllChatsHistory(responseCh chan<- chat.ChatMessages) e
 	}
 
 	return nil
+}
+
+func (h *history) RetrieveAllChatsHistory() (chat.ChatMessages, error) {
+	chatsCollection := h.chatCollection()
+	iter := chatsCollection.Documents(context.Background())
+	chatMessages := make(chat.ChatMessages, 100)
+	defer iter.Stop()
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return chatMessages, err
+		}
+		var messages messages
+		err = doc.DataTo(&messages)
+		if err != nil {
+			return chatMessages, err
+		}
+		chatMessages[doc.Ref.ID] = mapStorageMessagesToDomainMessages(messages)
+	}
+	return chatMessages, nil
 }
 
 func (h *history) trySaveHistory(histories chatHistories, retries int) error {
